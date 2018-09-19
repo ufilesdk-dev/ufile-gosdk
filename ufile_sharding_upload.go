@@ -2,7 +2,9 @@ package ufsdk
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -163,6 +165,10 @@ func (u *UFileRequest) chunkSharedingUpload(chunk []byte, keyName, uploadID stri
 		return "", err
 	}
 	req.Header.Add("Content-Type", "")
+
+	md5Str := fmt.Sprintf("%x", md5.Sum(chunk))
+	req.Header.Add("Content-MD5", md5Str)
+
 	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("Content-Length", strconv.Itoa(len(chunk)))

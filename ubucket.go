@@ -51,6 +51,8 @@ func (u *UFileRequest) DeleteBucket(bucketName, projectID string) error {
 }
 
 //UpdateBucket 更新一个 bucket，你可以改 bucket 的类型（私有或公有）和 项目 ID。
+//bucketType 填公有（public）或私有（private）。
+//projectID 没有可以填空（""）。
 func (u *UFileRequest) UpdateBucket(bucketName, bucketType, projectID string) error {
 	query := url.Values{}
 	query.Add("Action", "UpdateBucket")

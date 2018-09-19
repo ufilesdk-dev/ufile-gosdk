@@ -116,27 +116,35 @@ func makeBoundry() string {
 
 func makeFormBody(authorization, boundry, keyName, mimeType string, file *os.File) *bytes.Buffer {
 	boundry = "--" + boundry + "\r\n"
+	boundryBytes := []byte(boundry)
 	body := new(bytes.Buffer)
 
-	body.Write([]byte(boundry))
-	body.Write([]byte(makeFormField("Authorization", authorization)))
-	body.Write([]byte(boundry))
-	body.Write([]byte(makeFormField("Content-Type", mimeType)))
-	body.Write([]byte(boundry))
-	body.Write([]byte(makeFormField("FileName", keyName)))
-	body.Write([]byte(boundry))
+	body.Write(boundryBytes)
+	body.Write(makeFormField("Authorization", authorization))
+	body.Write(boundryBytes)
+	body.Write(makeFormField("Content-Type", mimeType))
+	body.Write(boundryBytes)
+	body.Write(makeFormField("FileName", keyName))
+	body.Write(boundryBytes)
+
+	h := md5.New()
+	io.Copy(h, file)
+	md5Str := fmt.Sprintf("%x", h.Sum(nil))
+	body.Write(makeFormField("Content-MD5", md5Str))
+	body.Write(boundryBytes)
+
 	addtionalStr := fmt.Sprintf("Content-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\n", keyName)
 	addtionalStr += fmt.Sprintf("Content-Type: %s\r\n\r\n", mimeType)
 	body.Write([]byte(addtionalStr))
 	body.ReadFrom(file)
 	body.Write([]byte("\r\n"))
-	body.Write([]byte(boundry))
+	body.Write(boundryBytes)
 
 	return body
 }
 
-func makeFormField(key, value string) string {
+func makeFormField(key, value string) []byte {
 	keyStr := fmt.Sprintf("Content-Disposition: form-data; name=\"%s\"\r\n\r\n", key)
 	valueStr := fmt.Sprintf("%s\r\n", value)
-	return keyStr + valueStr
+	return []byte(keyStr + valueStr)
 }

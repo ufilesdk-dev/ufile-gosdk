@@ -2,6 +2,7 @@ package ufsdk
 
 import (
 	"bytes"
+	"crypto/md5"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -98,6 +99,9 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 		mimeType = getMimeType(file)
 	}
 	req.Header.Add("Content-Type", mimeType)
+
+	md5Str := fmt.Sprintf("%x", md5.Sum(b))
+	req.Header.Add("Content-MD5", md5Str)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)
