@@ -21,11 +21,12 @@ const (
 
 //Config 配置文件序列化所需的全部字段
 type Config struct {
-	PublicKey   string `json:"public_key"`
-	PrivateKey  string `json:"private_key"`
-	BucketName  string `json:"bucket_name"`
-	UFileHost   string `json:"ufile_host"`
-	UBucketHost string `json:"ubucket_host"`
+	PublicKey       string `json:"public_key"`
+	PrivateKey      string `json:"private_key"`
+	BucketName      string `json:"bucket_name"`
+	FileHost        string `json:"ufile_host"`
+	BucketHost      string `json:"ubucket_host"`
+	VerifyUploadMD5 bool   `json:"verfiy_upload_md5"`
 }
 
 //LoadConfig 从配置文件加载一个配置。
@@ -114,7 +115,7 @@ func makeBoundry() string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func makeFormBody(authorization, boundry, keyName, mimeType string, file *os.File) *bytes.Buffer {
+func makeFormBody(authorization, boundry, keyName, mimeType string, verifyMD5 bool, file *os.File) *bytes.Buffer {
 	boundry = "--" + boundry + "\r\n"
 	boundryBytes := []byte(boundry)
 	body := new(bytes.Buffer)
@@ -127,11 +128,13 @@ func makeFormBody(authorization, boundry, keyName, mimeType string, file *os.Fil
 	body.Write(makeFormField("FileName", keyName))
 	body.Write(boundryBytes)
 
-	h := md5.New()
-	io.Copy(h, file)
-	md5Str := fmt.Sprintf("%x", h.Sum(nil))
-	body.Write(makeFormField("Content-MD5", md5Str))
-	body.Write(boundryBytes)
+	if verifyMD5 {
+		h := md5.New()
+		io.Copy(h, file)
+		md5Str := fmt.Sprintf("%x", h.Sum(nil))
+		body.Write(makeFormField("Content-MD5", md5Str))
+		body.Write(boundryBytes)
+	}
 
 	addtionalStr := fmt.Sprintf("Content-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\n", keyName)
 	addtionalStr += fmt.Sprintf("Content-Type: %s\r\n\r\n", mimeType)

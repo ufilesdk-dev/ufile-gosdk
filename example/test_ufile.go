@@ -25,8 +25,8 @@ const (
 const (
 	putUpload = iota
 	postUpload
-	syncShardingUpload
-	asyncShardingUpload
+	mput
+	asyncmput
 )
 
 func main() {
@@ -41,7 +41,10 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	req := ufsdk.NewUFileRequest(config, nil)
+	req, err := ufsdk.NewFileRequest(config, nil)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	var fileKey string
 	fileKey = generateUniqKey()
@@ -50,15 +53,14 @@ func main() {
 	scheduleUploadExample(fakeSmallFilePath, fileKey, postUpload, req)
 
 	fileKey = generateUniqKey()
-	scheduleUploadExample(fakeBigFilePath, fileKey, syncShardingUpload, req)
+	scheduleUploadExample(fakeBigFilePath, fileKey, mput, req)
 	fileKey = generateUniqKey()
-	scheduleUploadExample(fakeBigFilePath, fileKey, asyncShardingUpload, req)
+	scheduleUploadExample(fakeBigFilePath, fileKey, asyncmput, req)
 }
 
 func scheduleUploadExample(filePath, keyName string, uploadType int, req *ufsdk.UFileRequest) {
 	log.Println("上传的文件 Key 为：", keyName)
 	var err error
-	var uploadID string
 	switch uploadType {
 	case putUpload:
 		log.Println("正在使用PUT接口上传文件...")
@@ -67,20 +69,16 @@ func scheduleUploadExample(filePath, keyName string, uploadType int, req *ufsdk.
 	case postUpload:
 		log.Println("正在使用 POST 接口上传文件...")
 		err = req.PostFile(filePath, keyName, "")
-	case syncShardingUpload:
+	case mput:
 		log.Println("正在使用同步分片上传接口上传文件...")
-		uploadID, err = req.ShardingUpload(filePath, keyName, "")
-	case asyncShardingUpload:
+		err = req.MPut(filePath, keyName, "")
+	case asyncmput:
 		log.Println("正在使用异步分片上传接口上传文件...")
-		uploadID, err = req.AsyncShardingUpload(filePath, keyName, "")
+		err = req.AsyncMPut(filePath, keyName, "")
 	}
 	if err != nil {
 		log.Println("文件上传失败!!，错误信息为：", err.Error())
 		req.DumpResponse(true)
-		if uploadType == syncShardingUpload || uploadType == asyncShardingUpload {
-			log.Println("正在取消分片上传。")
-			req.AbortShardingUpload(keyName, uploadID)
-		}
 		return
 	}
 	log.Println("文件上传成功!!")

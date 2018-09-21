@@ -55,7 +55,7 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
 
 	boundry := makeBoundry()
-	body := makeFormBody(authorization, boundry, keyName, mimeType, file)
+	body := makeFormBody(authorization, boundry, keyName, mimeType, u.verifyUploadMD5, file)
 	//lastline 一定要写，否则后端解析不到。
 	lastline := fmt.Sprintf("\r\n--%s--\r\n", boundry)
 	body.Write([]byte(lastline))
@@ -100,8 +100,10 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 	}
 	req.Header.Add("Content-Type", mimeType)
 
-	md5Str := fmt.Sprintf("%x", md5.Sum(b))
-	req.Header.Add("Content-MD5", md5Str)
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(b))
+		req.Header.Add("Content-MD5", md5Str)
+	}
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)

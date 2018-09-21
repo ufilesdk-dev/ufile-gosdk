@@ -20,7 +20,10 @@ func main() {
 		panic(err.Error())
 	}
 	bucketName := generateRandomBucket()
-	req := ufsdk.NewUBucketRequest(config, nil)
+	req, err := ufsdk.NewBucketRequest(config, nil)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	ExampleCreateBucket(bucketName, req)
 	ExampleDescribeBuckt(bucketName, req)

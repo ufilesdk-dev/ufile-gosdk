@@ -2,6 +2,7 @@ package ufsdk
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -28,41 +29,45 @@ type UFileRequest struct {
 	LastResponseStatus int
 	LastResponseHeader http.Header
 	LastResponseBody   []byte
+	verifyUploadMD5    bool
 	lastResponse       *http.Response
 }
 
-//NewUFileRequest 创建一个用于管理文件的 request，管理文件的 url 与 管理 bucket 接口不一样，
+//NewFileRequest 创建一个用于管理文件的 request，管理文件的 url 与 管理 bucket 接口不一样，
 //请将 bucket 和文件管理所需要的分开，NewUBucketRequest 是用来管理 bucket 的。
 //Request 创建后的 instance 不是线程安全的，如果你需要做并发的操作，请创建多个 UFileRequest。
 //config 参数里面包含了公私钥，以及其他必填的参数。详情见 config 相关文档。
 //client 这里你可以传空，会使用默认的 http.Client。如果你需要设置超时以及一些其他相关的网络配置选项请传入一个自定义的 client。
-func NewUFileRequest(config *Config, client *http.Client) *UFileRequest {
+func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) {
 	config.BucketName = strings.TrimSpace(config.BucketName)
-	config.UFileHost = strings.TrimSpace(config.UFileHost)
-	if config.BucketName == "" || config.UFileHost == "" {
-		panic("管理文件上传必须要提供 bucket 名字和所在地域的 Host 域名")
+	config.FileHost = strings.TrimSpace(config.FileHost)
+	if config.BucketName == "" || config.FileHost == "" {
+		return nil, errors.New("管理文件上传必须要提供 bucket 名字和所在地域的 Host 域名")
 	}
-	return newRequest(config.PublicKey, config.PrivateKey,
-		config.BucketName, config.UFileHost, client)
+	req := newRequest(config.PublicKey, config.PrivateKey,
+		config.BucketName, config.FileHost, client)
+	req.verifyUploadMD5 = config.VerifyUploadMD5
+	return req, nil
 }
 
-//NewUBucketRequest 创建一个用于管理 bucket 的 request。
+//NewBucketRequest 创建一个用于管理 bucket 的 request。
 //注意：不要拿它去调用文件管理的 request，我文件管理和 bucket 管理接口放到一个 request 里面的目的就是让接口更统一，代码更清晰，简洁。
 //config 参数里面包含了公私钥，以及其他必填的参数。详情见 config 相关文档。
-func NewUBucketRequest(config *Config, client *http.Client) *UFileRequest {
-	config.UBucketHost = strings.TrimSpace(config.UBucketHost)
-	if config.UBucketHost == "" {
-		panic("管理 Bucket 必须要提供对应的 API host")
+func NewBucketRequest(config *Config, client *http.Client) (*UFileRequest, error) {
+	config.BucketHost = strings.TrimSpace(config.BucketHost)
+	if config.BucketHost == "" {
+		return nil, errors.New("管理 Bucket 必须要提供对应的 API host")
 	}
-	return newRequest(config.PublicKey, config.PrivateKey,
-		"", config.UBucketHost, client)
+	req := newRequest(config.PublicKey, config.PrivateKey, "", config.BucketHost, client)
+	req.verifyUploadMD5 = config.VerifyUploadMD5
+	return req, nil
 }
 
 //DumpResponse dump 当前请求的返回结果，里面有一个 print 函数，会把 body,header,status code 直接输出到 stdout。
 //如果你需要 Dump 到其他的地方，直接拿返回值即可。
 func (u *UFileRequest) DumpResponse(isDumpBody bool) []byte {
 	var b bytes.Buffer
-	fmt.Printf("%s %d\n", u.lastResponse.Proto, u.LastResponseStatus)
+	b.WriteString(fmt.Sprintf("%s %d\n", u.lastResponse.Proto, u.LastResponseStatus))
 	for k, vs := range u.LastResponseHeader {
 		str := k + ": "
 		for i, v := range vs {
@@ -72,11 +77,9 @@ func (u *UFileRequest) DumpResponse(isDumpBody bool) []byte {
 				str += v
 			}
 		}
-		fmt.Println(str)
 		b.WriteString(str)
 	}
 	if isDumpBody {
-		fmt.Printf("%s\n", u.LastResponseBody)
 		b.Write(u.LastResponseBody)
 	}
 	return b.Bytes()
@@ -95,7 +98,7 @@ func newRequest(publicKey, privateKey, bucket, host string, client *http.Client)
 	return req
 }
 
-func (u *UFileRequest) resposneParse(resp *http.Response) error {
+func (u *UFileRequest) responseParse(resp *http.Response) error {
 	resBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -114,7 +117,7 @@ func (u *UFileRequest) request(req *http.Request) error {
 	if err != nil {
 		return err
 	}
-	err = u.resposneParse(resp)
+	err = u.responseParse(resp)
 	if err != nil {
 		return err
 	}

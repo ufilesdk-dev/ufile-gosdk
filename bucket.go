@@ -100,7 +100,7 @@ func (u *UFileRequest) bucketRequest(query url.Values) error {
 	if err != nil {
 		return err
 	}
-	return u.resposneParse(resp)
+	return u.responseParse(resp)
 }
 
 func (u *UFileRequest) genBucketURL(query url.Values) string {
