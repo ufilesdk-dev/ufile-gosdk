@@ -78,7 +78,8 @@ func scheduleUploadExample(filePath, keyName string, uploadType int, req *ufsdk.
 	}
 	if err != nil {
 		log.Println("文件上传失败!!，错误信息为：", err.Error())
-		req.DumpResponse(true)
+		//如果 err 给出的提示信息不够，你可 dump 整个 response 出来查看 http 的返回。
+		log.Printf("%s\n", req.DumpResponse(true))
 		return
 	}
 	log.Println("文件上传成功!!")
@@ -89,27 +90,22 @@ func scheduleUploadExample(filePath, keyName string, uploadType int, req *ufsdk.
 	err = req.HeadFile(keyName)
 	if err != nil {
 		log.Println("查询文件信息失败，具体错误详情：", err.Error())
-		req.DumpResponse(true)
 		return
 	}
-	log.Println("文件基本信息为：")
-	req.DumpResponse(true)
 
 	log.Println("正在秒传文件...")
 	err = req.UploadHit(filePath, keyName)
 	if err != nil {
 		log.Println("文件秒传失败，错误信息为：", err.Error())
-		req.DumpResponse(true)
 	} else {
 		log.Println("秒传文件返回的信息是：")
-		req.DumpResponse(true)
 	}
+	req.DumpResponse(true)
 
 	log.Println("正在获取文件列表...")
 	err = req.PrefixFileList(keyName, "", 10)
 	if err != nil {
 		log.Println("获取文件列表失败，错误信息为：", err.Error())
-		req.DumpResponse(true)
 		return
 	}
 	req.DumpResponse(true)
@@ -148,4 +144,10 @@ func generateUniqKey() string {
 	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	randInt := seededRand.Int()
 	return strconv.Itoa(randInt) + ".txt"
+}
+
+func generateUniqName() string {
+	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randInt := seededRand.Int()
+	return strconv.Itoa(randInt)
 }

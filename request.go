@@ -17,9 +17,8 @@ import (
 //
 //3.只简单封装 HTTP 请求所需要的参数，给接口使用者提供所有原生的 HTTP response header,body,status code 返回，以便排错。
 //
-//4.远端请求返回值统一，只返回一个 error，如果为 nil 表示无错。LastResponseStatus，LastResponseHeader，LastResponseBody 可以查看具体的 HTTP 返回信息（）。如果你想少敲几行代码可以直接调用 DumpResponse(true) 查看详细返回。
+//4.远端请求返回值统一返回一个 error，如果为 nil 表示无错。LastResponseStatus，LastResponseHeader，LastResponseBody 可以查看具体的 HTTP 返回信息（）。如果你想少敲几行代码可以直接调用 DumpResponse(true) 查看详细返回。
 //
-//不做序列化的封装不代表不支持，非侵入的工具函数 MarshalResult 可以做这件事情。
 type UFileRequest struct {
 	Auth       Auth
 	BucketName string

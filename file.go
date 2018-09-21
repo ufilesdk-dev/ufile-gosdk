@@ -3,6 +3,7 @@ package ufsdk
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,6 +11,30 @@ import (
 	"strconv"
 	"time"
 )
+
+//FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
+type FileDataSet struct {
+	BucketName  string `json:"BucketName,omitempty"`
+	FileName    string `json:"FileName,omitempty"`
+	Hash        string `json:"Hash,omitempty"`
+	MimeType    string `json:"MimeType,omitempty"`
+	FirstObject string `json:"first_object,omitempty"`
+	Size        int    `json:"Size,omitempty"`
+	CreateTime  int    `json:"CreateTime,omitempty"`
+	ModifyTime  int    `json:"ModifyTime,omitempty"`
+}
+
+//FileListResponse 用 PrefixFileList 接口返回的 list 数据。
+type FileListResponse struct {
+	BucketName string        `json:"BucketName,omitempty"`
+	BucketID   string        `json:"BucketId,omitempty"`
+	NextMarker string        `json:"NextMarker,omitempty"`
+	DataSet    []FileDataSet `json:"DataSet,omitempty"`
+}
+
+func (f *FileListResponse) String() string {
+	return structPrettyStr(f)
+}
 
 //UploadHit 文件秒传，它的原理是计算出文件的 etag 值与远端服务器进行对比，如果文件存在就快速返回。
 func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
@@ -141,7 +166,7 @@ func (u *UFileRequest) HeadFile(keyName string) error {
 //prefix 表示匹配文件前缀。
 //marker 标志字符串
 //limit 列表数量限制，传 0 会默认设置为 20.
-func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) error {
+func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) (list FileListResponse, err error) {
 	query := &url.Values{}
 	query.Add("prefix", prefix)
 	query.Add("marker", marker)
@@ -153,13 +178,18 @@ func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) error {
 
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
-		return err
+		return
 	}
 
 	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
 	req.Header.Add("authorization", authorization)
 
-	return u.request(req)
+	err = u.request(req)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(u.LastResponseBody, &list)
+	return
 }
 
 //GetPublicURL 获取公有空间的文件下载 URL

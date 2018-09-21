@@ -93,7 +93,7 @@ func (A Auth) signature(data string) string {
 	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
 }
 
-//AuthorizationBucketMgr generate query signature
+//AuthorizationBucketMgr 生成用于管理 bucket 的签名。
 func (A Auth) AuthorizationBucketMgr(query url.Values) string {
 	query.Add("PublicKey", A.publicKey)
 

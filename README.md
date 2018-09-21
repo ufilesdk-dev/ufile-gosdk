@@ -27,7 +27,7 @@ SDK 主要分为两个模块，一个是 bucket 管理，一个是 file 管理�
         req.DumpResponse(true)
     }
 ```
-更详细的代码请参考 [example/test_ufile.go](/example/test_ufile.go) 和 [example/test_ubucket.go](example/test_ubucket.go)
+更详细的代码请参考 [example/demo_file.go](/example/demo_file.go) 和 [example/demo_bucket.go](example/demo_bucket.go)
 
 ## 文档说明
 本 SDK 使用 [godoc](https://blog.golang.org/godoc-documenting-go-code) 约定的方法对每个 export 出来的接口进行注释。

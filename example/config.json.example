@@ -3,10 +3,10 @@
     "public_key":"",
     "private_key":"",
 
-    "说明2":"以下两个参数是用来管理文件用的。对应的是 ufile.go 里面的接口",
+    "说明2":"以下两个参数是用来管理文件用的。对应的是 file.go 里面的接口，file_host 是不带 bucket 名字的。比如：北京地域的host填cn-bj.ufileos.com，而不是填 bucketname.cn-bj.ufileos.com",
     "bucket_name":"",
-    "ufile_host":"",
+    "file_host":"",
 
-    "说明3":"以下参数是用来管理 bucket 用的。对应的是 ubucket.go 里面的接口",
-    "ubucket_host":""
+    "说明3":"以下参数是用来管理 bucket 用的。对应的是 bucket.go 里面的接口",
+    "bucket_host":""
 }

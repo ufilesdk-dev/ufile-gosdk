@@ -151,3 +151,11 @@ func makeFormField(key, value string) []byte {
 	valueStr := fmt.Sprintf("%s\r\n", value)
 	return []byte(keyStr + valueStr)
 }
+
+func structPrettyStr(data interface{}) string {
+	bytes, err := json.MarshalIndent(data, "", " ")
+	if err == nil {
+		return fmt.Sprintf("%s\n", bytes)
+	}
+	return ""
+}
