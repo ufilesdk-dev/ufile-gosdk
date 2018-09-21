@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -59,11 +60,11 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 	chunk := make([]byte, state.BlkSize)
 	var pos int
 	for {
-		_, fileErr := file.Read(chunk)
-		if fileErr == io.EOF {
+		bytesRead, fileErr := file.Read(chunk)
+		if fileErr == io.EOF || bytesRead == 0 { //后面直接读到了结尾
 			break
 		}
-		buf := bytes.NewBuffer(chunk)
+		buf := bytes.NewBuffer(chunk[:bytesRead])
 		err := u.UploadPart(buf, state, pos)
 		if err != nil {
 			u.AbortMultipartUpload(state)
@@ -89,9 +90,8 @@ func (u *UFileRequest) AsyncMPut(filePath, keyName, mimeType string) error {
 	}
 	defer file.Close()
 	fsize := getFileSize(file)
-
-	chunkCount := int(fsize / int64(state.BlkSize))
-	maxJobRunning := 10 //最多允许 10 个线程同时跑
+	chunkCount := divideCeil(fsize, int64(state.BlkSize)) //向上取整
+	maxJobRunning := 10                                   //最多允许 10 个线程同时跑
 	concurrentChan := make(chan error, maxJobRunning)
 	for i := 0; i != maxJobRunning; i++ {
 		concurrentChan <- nil
@@ -109,17 +109,23 @@ func (u *UFileRequest) AsyncMPut(filePath, keyName, mimeType string) error {
 			defer wg.Done()
 			offset := int64(state.BlkSize * pos)
 			chunk := make([]byte, state.BlkSize)
-			file.ReadAt(chunk, offset)
-			e := u.UploadPart(bytes.NewBuffer(chunk), state, pos)
+			bytesRead, _ := file.ReadAt(chunk, offset)
+			e := u.UploadPart(bytes.NewBuffer(chunk[:bytesRead]), state, pos)
 			concurrentChan <- e //跑完一个 goroutine 后，发信号表示可以开启新的 goroutine。
 		}(i)
 	}
 	wg.Wait()       //等待所有任务返回
 	if err == nil { //再次检查剩余上传完的分片是否有错误
-		for e := range concurrentChan {
-			if e != nil {
+	loopCheck:
+		for {
+			select {
+			case e := <-concurrentChan:
 				err = e
-				break
+				if err != nil {
+					break loopCheck
+				}
+			default:
+				break loopCheck
 			}
 		}
 	}
@@ -231,4 +237,10 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	req.Header.Add("Content-Length", strconv.Itoa(len(etagsStr)))
 
 	return u.request(req)
+}
+
+func divideCeil(a, b int64) int {
+	div := float64(a) / float64(b)
+	c := math.Ceil(div)
+	return int(c)
 }
