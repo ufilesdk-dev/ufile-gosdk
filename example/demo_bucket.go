@@ -28,7 +28,7 @@ func main() {
 	log.Println("正在创建 bucket 名字为：", bucketName, "...")
 	bucketRet, err := req.CreateBucket(bucketName, "cn-bj", "private", "")
 	if err != nil {
-		log.Println("创建 bucket 出错，错误信息为：", bucketRet)
+		log.Printf("创建 bucket 出错，错误信息为：%s\n", err.Error())
 	} else {
 		log.Println("创建 Bucket 成功，bucket 为", bucketRet)
 	}
@@ -36,9 +36,9 @@ func main() {
 	log.Println("正在获取 bucket 详细信息...")
 	bucketList, err := req.DescribeBucket(bucketName, 0, 10, "")
 	if err != nil {
-		log.Println("获取 bucket 信息出错，错误信息为：", err.Error())
+		log.Println("获取 bucket 信息出错，错误信息为：", err.Error(), bucketList)
 	} else {
-		log.Println("获取 list 成功，List 为", bucketList)
+		log.Println("获取 bucket list 成功，list 为", bucketList)
 	}
 
 	log.Println("正在更新 bucket 信息")
@@ -46,10 +46,10 @@ func main() {
 	if err != nil {
 		log.Println("更新 bucket 信息失败，错误信息为：", err.Error())
 	} else {
-		log.Println("Bucket 更新成功，返回", bucketRet)
+		log.Println("Bucket 更新成功。")
 	}
 
-	log.Println("正在更新 bucket 信息")
+	log.Println("正在删除 bucket 信息")
 	bucketRet, err = req.DeleteBucket(bucketName, "")
 	if err != nil {
 		log.Println("删除 bucket 失败，错误信息为：", err.Error())

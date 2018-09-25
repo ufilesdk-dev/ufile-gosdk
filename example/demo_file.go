@@ -19,7 +19,7 @@ const (
 
 	configFile = "config.json"
 
-	pageSize = 1 << 12
+	pageSize = 1 << 12 //4K
 )
 
 const (
@@ -98,20 +98,16 @@ func scheduleUploadExample(filePath, keyName string, uploadType int, req *ufsdk.
 	if err != nil {
 		log.Println("文件秒传失败，错误信息为：", err.Error())
 	} else {
-		log.Println("秒传文件返回的信息是：")
+		log.Printf("秒传文件返回的信息是：%s\n", req.LastResponseBody)
 	}
-	req.DumpResponse(true)
 
 	log.Println("正在获取文件列表...")
-	err = req.PrefixFileList(keyName, "", 10)
+	list, err := req.PrefixFileList(keyName, "", 10)
 	if err != nil {
 		log.Println("获取文件列表失败，错误信息为：", err.Error())
 		return
 	}
-	req.DumpResponse(true)
-	var response ufsdk.FileListResponse
-	ufsdk.MarshalResult(req, &response)
-	log.Printf("获取文件列表返回的信息是：\n%s\n", response.String())
+	log.Printf("获取文件列表返回的信息是：\n%s\n", list)
 
 	log.Println("正在删除刚刚上传的文件")
 	err = req.DeleteFile(keyName)
@@ -144,10 +140,4 @@ func generateUniqKey() string {
 	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	randInt := seededRand.Int()
 	return strconv.Itoa(randInt) + ".txt"
-}
-
-func generateUniqName() string {
-	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
-	randInt := seededRand.Int()
-	return strconv.Itoa(randInt)
 }
