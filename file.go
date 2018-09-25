@@ -64,6 +64,7 @@ func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
 //PostFile 使用 HTTP Form 的方式上传一个文件。
 //注意：使用本接口上传文件后，调用 UploadHit 接口会返回 404，因为经过 form 包装的文件，etag 值会不一样，所以会调用失败。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
 //小于 100M 的文件推荐使用本接口上传。
 func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) {
 	file, err := openFile(filePath)
@@ -100,6 +101,7 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 
 //PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
 //mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
 //小于 100M 的文件推荐使用本接口上传。
 func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 	reqURL := u.genFileURL(keyName)
@@ -139,6 +141,7 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 }
 
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
+//keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
 	reqURL := u.genFileURL(keyName)
 	req, err := http.NewRequest("DELETE", reqURL, nil)
@@ -151,6 +154,7 @@ func (u *UFileRequest) DeleteFile(keyName string) error {
 }
 
 //HeadFile 获取一个文件的基本信息，返回的信息全在 header 里面。包含 mimeType, content-length（文件大小）, etag, Last-Modified:。
+//keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) HeadFile(keyName string) error {
 	reqURL := u.genFileURL(keyName)
 	req, err := http.NewRequest("HEAD", reqURL, nil)
@@ -193,16 +197,18 @@ func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) (list Fi
 }
 
 //GetPublicURL 获取公有空间的文件下载 URL
+//keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) GetPublicURL(keyName string) string {
 	return u.genFileURL(keyName)
 }
 
 //GetPrivateURL 获取私有空间的文件下载 URL。
+//keyName 表示传到 ufile 的文件名。
 //expiresDuation 表示下载链接的过期时间，从现在算起，24 * time.Hour 表示过期时间为一天。
 func (u *UFileRequest) GetPrivateURL(keyName string, expiresDuation time.Duration) string {
 	t := time.Now()
 	t.Add(expiresDuation)
-	expires := strconv.Itoa(int(t.Unix()))
+	expires := strconv.FormatInt(t.Unix(), 10)
 	signature, publicKey := u.Auth.AuthorizationPrivateURL("GET", u.BucketName, keyName, expires, http.Header{})
 	query := url.Values{}
 	query.Add("UCloudPublicKey", publicKey)

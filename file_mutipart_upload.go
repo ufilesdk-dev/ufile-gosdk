@@ -45,17 +45,22 @@ type uploadChan struct {
 
 //MPut 分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是同步一片一片的上传。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
 //大于 100M 的文件推荐使用本接口上传。
 func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
-	state, err := u.InitiateMultipartUpload(keyName, mimeType)
-	if err != nil {
-		return err
-	}
 	file, err := openFile(filePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+
+	state, err := u.InitiateMultipartUpload(keyName, mimeType)
+	if err != nil {
+		return err
+	}
 
 	chunk := make([]byte, state.BlkSize)
 	var pos int
@@ -78,17 +83,22 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 
 //AsyncMPut 异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
 //大于 100M 的文件推荐使用本接口上传。
 func (u *UFileRequest) AsyncMPut(filePath, keyName, mimeType string) error {
-	state, err := u.InitiateMultipartUpload(keyName, mimeType)
-	if err != nil {
-		return err
-	}
 	file, err := openFile(filePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+
+	state, err := u.InitiateMultipartUpload(keyName, mimeType)
+	if err != nil {
+		return err
+	}
 	fsize := getFileSize(file)
 	chunkCount := divideCeil(fsize, int64(state.BlkSize)) //向上取整
 	maxJobRunning := 10                                   //最多允许 10 个线程同时跑
@@ -155,14 +165,18 @@ func (u *UFileRequest) AbortMultipartUpload(state *MultipartState) error {
 }
 
 //InitiateMultipartUpload 初始化分片上传，返回一个 state 用于后续的 UploadPart, FinishMultipartUpload, AbortMultipartUpload 的接口。
+//
 //keyName 表示传到 ufile 的文件名。
-//mimeType 表示文件的 mimeType, 传空会调用 net/http 里面的 DetectContentType 进行检测。
-//state 参数是 InitiateMultipartUpload 返回的
+//
+//mimeType 表示文件的 mimeType, 传空会报错，你可以使用 GetFileMimeType 方法检测文件的 mimeType。如果您上传的不是文件，您可以使用 http.DetectContentType https://golang.org/src/net/http/sniff.go?s=646:688#L11进行检测。
 func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*MultipartState, error) {
 	reqURL := u.genFileURL(keyName) + "?uploads"
 	req, err := http.NewRequest("POST", reqURL, nil)
 	if err != nil {
 		return nil, err
+	}
+	if mimeType == "" {
+		return nil, fmt.Errorf("Mime Type 不能为空！！！")
 	}
 	req.Header.Add("Content-Type", mimeType)
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)

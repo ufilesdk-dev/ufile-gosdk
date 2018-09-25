@@ -76,19 +76,13 @@ func (b BucketListResponse) String() string {
 
 //CreateBucket 创建一个 bucket, bucketName 必须全部为小写字母，不能带符号和特殊字符。
 //
-//region 可以填如下字段：
+//region 表示 ufile 所在的可用区，目前支持北京，香港，广州，上海二，雅加达，洛杉矶。一下是可用区值的映射：
 //
-//cn-bj 北京
+//北京 cn-bj
 //
-//hk 香港
+//广州 cn-gd
 //
-//cn-gd 广州
-//
-//cn-sh2 上海二
-//
-//dn-jakarta 雅加达
-//
-//us-ca 洛杉矶
+//可用区以控制台列出来的为准，更多可用区具体的值在 https://docs.ucloud.cn/api/summary/regionlist 查看。
 //
 //bucketType 可以填 public（公有空间） 和 private（私有空间）
 //projectID bucket 所在的项目 ID，可为空。

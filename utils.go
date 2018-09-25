@@ -55,17 +55,14 @@ func VerifyHTTPCode(code int) bool {
 	return true
 }
 
-func openFile(path string) (*os.File, error) {
-	return os.Open(path)
-}
-
-//getFileSize get opened file size
-func getFileSize(f *os.File) int64 {
-	fi, err := f.Stat()
+//GetFileMimeType 获取文件的 mime type 值，接收文件路径作为参数。如果检测不到，则返回空。
+func GetFileMimeType(path string) string {
+	f, err := openFile(path)
 	if err != nil {
-		panic(err.Error())
+		return ""
 	}
-	return fi.Size()
+	defer f.Close()
+	return getMimeType(f)
 }
 
 func getMimeType(f *os.File) string {
@@ -78,6 +75,19 @@ func getMimeType(f *os.File) string {
 	}
 
 	return http.DetectContentType(buffer)
+}
+
+func openFile(path string) (*os.File, error) {
+	return os.Open(path)
+}
+
+//getFileSize get opened file size
+func getFileSize(f *os.File) int64 {
+	fi, err := f.Stat()
+	if err != nil {
+		panic(err.Error())
+	}
+	return fi.Size()
 }
 
 func calculateEtag(f *os.File) string {
