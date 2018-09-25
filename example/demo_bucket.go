@@ -36,7 +36,7 @@ func main() {
 	log.Println("正在获取 bucket 详细信息...")
 	bucketList, err := req.DescribeBucket(bucketName, 0, 10, "")
 	if err != nil {
-		log.Println("获取 bucket 信息出错，错误信息为：", err.Error(), bucketList)
+		log.Println("获取 bucket 信息出错，错误信息为：", err.Error())
 	} else {
 		log.Println("获取 bucket list 成功，list 为", bucketList)
 	}

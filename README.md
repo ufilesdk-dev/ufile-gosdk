@@ -10,7 +10,7 @@
 本 SDK 的用户接口是基于 HTTP 的，为了连接的安全性，我们使用 HMAC SHA1 对每个连接进行签名校验。使用 SDK 你可以忽略签名相关的操作，你只要把公私钥写入到配置文件里面（注意不要传到版本控制里面），读取并传给 UFileRequest 里面的创建 instance 的函数即可。
 签名相关的算法与详细实现请见 [Auth 模块](auth.go)
 
-##功能列表
+## 功能列表
 ### 文件操作相关功能
 [Put 上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutFile)
 [Post 上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PostFile)  
@@ -56,4 +56,4 @@ SDK 主要分为两个模块，一个是 bucket 管理，一个是 file 管理�
 你可以直接访问生成好的[在线文档](https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk)。  
 
 ## 如何排错？
-使用 UFileRequest 里面的方法对返回的 error 进行检查。如果不为 nil，调用 Error() 查看错误信息。调用 DumpResponse(true) 并获取返回值查看详细的 HTTP 具体返回值。  
+使用 UFileRequest 里面的方法对返回的 error 进行检查。如果不为 nil，调用 Error() 查看错误信息。调用 DumpResponse(true) 并获取返回值查看详细的 HTTP 返回值。
