@@ -21,11 +21,15 @@ type BucketResponse struct {
 	Message    string `json:"Message,omitempty"`
 }
 
-func (b *BucketResponse) Error() error {
+func (b BucketResponse) Error() error {
 	if b.RetCode != 0 {
 		return errors.New(b.Message)
 	}
 	return nil
+}
+
+func (b BucketResponse) String() string {
+	return structPrettyStr(b)
 }
 
 //DomainSet 用于 BucketDataSet 里面的 Domain 字段
@@ -58,7 +62,7 @@ type BucketListResponse struct {
 	DataSet []BucketDataSet `json:"DataSet,omitempty"`
 }
 
-func (b *BucketListResponse) Error() error {
+func (b BucketListResponse) Error() error {
 	if b.RetCode != 0 {
 		return errors.New(b.Message)
 	}
@@ -66,7 +70,7 @@ func (b *BucketListResponse) Error() error {
 }
 
 //String 把 BucketListResponse 里面的字段格式化。
-func (b *BucketListResponse) String() string {
+func (b BucketListResponse) String() string {
 	return structPrettyStr(b)
 }
 

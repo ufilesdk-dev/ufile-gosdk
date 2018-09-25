@@ -32,7 +32,7 @@ type FileListResponse struct {
 	DataSet    []FileDataSet `json:"DataSet,omitempty"`
 }
 
-func (f *FileListResponse) String() string {
+func (f FileListResponse) String() string {
 	return structPrettyStr(f)
 }
 
