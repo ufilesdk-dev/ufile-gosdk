@@ -18,6 +18,7 @@ import (
 type MultipartState struct {
 	BlkSize  int //服务器返回的分片大小
 	uploadID string
+	mimeType string
 	keyName  string
 	etags    []string
 	mux      sync.Mutex
@@ -193,6 +194,7 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 	}
 	response.keyName = keyName
 	response.etags = make([]string, 0)
+	response.mimeType = mimeType
 
 	return response, err
 }
@@ -210,13 +212,12 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Content-Type", "")
-
 	if u.verifyUploadMD5 {
 		md5Str := fmt.Sprintf("%x", md5.Sum(buf.Bytes()))
 		req.Header.Add("Content-MD5", md5Str)
 	}
 
+	req.Header.Add("Content-Type", state.mimeType)
 	authorization := u.Auth.Authorization("PUT", u.BucketName, state.keyName, req.Header)
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("Content-Length", strconv.Itoa(buf.Len()))
@@ -245,7 +246,7 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Content-Type", "text/plain")
+	req.Header.Add("Content-Type", state.mimeType)
 	authorization := u.Auth.Authorization("POST", u.BucketName, state.keyName, req.Header)
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("Content-Length", strconv.Itoa(len(etagsStr)))

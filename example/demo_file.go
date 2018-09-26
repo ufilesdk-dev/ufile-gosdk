@@ -113,11 +113,9 @@ func scheduleUploadExample(filePath, keyName string, uploadType int, req *ufsdk.
 	err = req.DeleteFile(keyName)
 	if err != nil {
 		log.Println("删除文件失败，错误信息为：", err.Error())
-		req.DumpResponse(true)
 		return
 	}
-	log.Println("删除文件成功，返回的信息为：")
-	req.DumpResponse(true)
+	log.Println("删除文件成功")
 }
 
 func generateFakefile(filepath string, fsize int) {
