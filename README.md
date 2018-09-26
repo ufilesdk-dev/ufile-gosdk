@@ -1,4 +1,4 @@
-# Ucloud 对象存储 SDK
+# Ucloud 对象存储 SDK [![GoDoc](https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk?status.svg)](https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk)
 > Modules are interface and implementation.    
 > The best modules are where interface is much simpler than implementation.  
 > **By: John Ousterhout**
@@ -57,3 +57,4 @@ SDK 主要分为两个模块，一个是 bucket 管理，一个是 file 管理�
 
 ## 如何排错？
 使用 UFileRequest 里面的方法对返回的 error 进行检查。如果不为 nil，调用 Error() 查看错误信息。调用 DumpResponse(true) 并获取返回值查看详细的 HTTP 返回值。
+
