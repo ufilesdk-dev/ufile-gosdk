@@ -34,7 +34,7 @@
 [构造 bucket 管理签名](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#Auth.AuthorizationBucketMgr)  
 
 ## 示例代码
-SDK 主要分为两个模块，一个是 bucket 管理，一个是 file 管理。使用对象存储你需要频繁的调用 file 管理相关的接口，bucket 管理用到的地方不会太频繁。一下是用 SDK 上传一个文件的例子：
+SDK 主要分为两个模块，一个是 bucket 管理，一个是 file 管理。使用对象存储你需要频繁的调用 file 管理相关的接口，bucket 管理用到的地方不会太频繁。以下是用 SDK 上传一个文件的例子：
 ```go
     import ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 	config, err := ufsdk.LoadConfig(configFile)
