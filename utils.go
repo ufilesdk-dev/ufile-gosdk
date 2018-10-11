@@ -90,6 +90,17 @@ func getFileSize(f *os.File) int64 {
 	return fi.Size()
 }
 
+//GetFileEtag 获取文件的 etag 值
+func GetFileEtag(path string) string {
+	f, err := openFile(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	return calculateEtag(f)
+}
+
+//Calculatek 计算文件的 etag 值。
 func calculateEtag(f *os.File) string {
 	fsize := getFileSize(f)
 	blkcnt := uint32(fsize / blkSIZE)

@@ -10,6 +10,12 @@
 本 SDK 接口是基于 HTTP 的，为了连接的安全性，UFile 使用 HMAC SHA1 对每个连接进行签名校验。使用本 SDK 可以忽略签名相关的算法过程，只要把公私钥写入到配置文件里面（注意不要传到版本控制里面），读取并传给 UFileRequest 里面的 New 方法即可。  
 签名相关的算法与详细实现请见 [Auth 模块](auth.go)
 
+## 安装
+`go get github.com/ufilesdk-dev/ufile-gosdk`
+
+### 执行测试
+`cd example; go run demo_file.go`
+
 ## 功能列表
 ### 文件操作相关功能
 [Put 上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutFile)

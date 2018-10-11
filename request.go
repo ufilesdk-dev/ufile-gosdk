@@ -112,6 +112,7 @@ func (u *UFileRequest) responseParse(resp *http.Response) error {
 }
 
 func (u *UFileRequest) request(req *http.Request) error {
+	req.Header.Set("User-Agent", "UFile-GoSDK-Client/2.0")
 	resp, err := u.Client.Do(req)
 	if err != nil {
 		return err
