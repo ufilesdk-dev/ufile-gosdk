@@ -222,12 +222,12 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("Content-Length", strconv.Itoa(buf.Len()))
 
-	err = u.request(req)
+	resp, err := safeRequest(req, u.Client)
 	if err != nil {
 		return err
 	}
 
-	etag := u.LastResponseHeader.Get("Etag")
+	etag := resp.Header.Get("Etag") //为保证线程安全，这里就不保留 lastResponse
 	state.mux.Lock()
 	state.etags = append(state.etags, etag)
 	state.mux.Unlock()
@@ -252,6 +252,19 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	req.Header.Add("Content-Length", strconv.Itoa(len(etagsStr)))
 
 	return u.request(req)
+}
+
+func safeRequest(req *http.Request, client *http.Client) (resp *http.Response, err error) {
+	req.Header.Set("User-Agent", "UFile-GoSDK-Client/2.0")
+	resp, err = client.Do(req)
+	if err != nil {
+		return
+	}
+	if !VerifyHTTPCode(resp.StatusCode) {
+		err = fmt.Errorf("Remote response code is %d - %s",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	return
 }
 
 func divideCeil(a, b int64) int {
