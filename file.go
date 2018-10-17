@@ -5,11 +5,17 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
+)
+
+const (
+	fourMegabyte = 1 << 22 //4M
 )
 
 //FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
@@ -218,13 +224,67 @@ func (u *UFileRequest) GetPrivateURL(keyName string, expiresDuation time.Duratio
 	return reqURL + "?" + query.Encode()
 }
 
-//Download 把文件下载到 HTTP Body 里面。
+//Download 把文件下载到 HTTP Body 里面，这里只能用来下载小文件，建议使用 DownloadFile 来下载大文件。
 func (u *UFileRequest) Download(reqURL string) error {
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return err
 	}
 	return u.request(req)
+}
+
+//Download 文件下载接口，下载前会先获取文件大小，如果小于 4M 直接下载。大于 4M 每次会按 4M 的分片来下载。
+func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
+	err := u.HeadFile(keyName)
+	if err != nil {
+		return err
+	}
+	size := u.LastResponseHeader.Get("Content-Length")
+	fileSize, err := strconv.ParseInt(size, 10, 0)
+	if err != nil || fileSize <= 0 {
+		return fmt.Errorf("Parse content-lengt returned error")
+	}
+
+	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return err
+	}
+
+	if fileSize < fourMegabyte {
+		err = u.request(req)
+		if err != nil {
+			return err
+		}
+		writer.Write(u.LastResponseBody)
+	} else {
+		var i int64
+		for i = 0; i < fileSize; i += fourMegabyte { // 一次下载 4 M
+			start := i
+			end := i + fourMegabyte - 1 //数组是从 0 开始的。 &_& .....
+			if end > fileSize {
+				end = fileSize
+			}
+			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
+			err = u.request(req)
+			if err != nil {
+				return err
+			}
+			writer.Write(u.LastResponseBody)
+		}
+	}
+	return nil
+}
+
+//CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致
+func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool {
+	err := u.HeadFile("test.txt")
+	if err != nil {
+		return false
+	}
+	remoteEtag := strings.Trim(u.LastResponseHeader.Get("Etag"), "\"")
+	localEtag := GetFileEtag(localFilePath)
+	return remoteEtag == localEtag
 }
 
 func (u *UFileRequest) genFileURL(keyName string) string {

@@ -2,15 +2,15 @@ package main
 
 import (
 	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
-	"io/ioutil"
 	"log"
-	"time"
+	"os"
 )
 
 const (
-	filePath   = "./FakeSmallFile.txt"
-	configFile = "config.json"
-	filekey    = "test.txt"
+	uploadFile    = "./FakeBigFile.txt"
+	configFile    = "config.json"
+	remoteFileKey = "test.txt"
+	saveAsName    = "download.txt"
 )
 
 func main() {
@@ -25,22 +25,30 @@ func main() {
 		panic(err.Error())
 	}
 	log.Println("正在上传文件。。。。")
-	err = req.PutFile(filePath, filekey, "")
+
+	err = req.PutFile(uploadFile, remoteFileKey, "")
 	if err != nil {
 		log.Printf("上传文件失败，错误信息为：%s\n", req.DumpResponse(true))
 		return
 	}
 
 	log.Println("正在下载文件。。。。")
-	err = req.Download(req.GetPrivateURL(filekey, 24*time.Hour))
+	file, err := os.OpenFile(saveAsName, os.O_CREATE|os.O_WRONLY, 0755)
+	if err != nil {
+		log.Println("创建文件失败，错误信息为：", err.Error())
+		return
+	}
+
+	err = req.DownloadFile(file, remoteFileKey)
 	if err != nil {
 		log.Println("下载文件出错，出错信息为：", err.Error())
 	}
+	file.Close() //提前关闭文件，防止 etag 计算不准。
 
-	err = ioutil.WriteFile(filekey, req.LastResponseBody, 0755)
-	if err != nil {
-		log.Println("写本地文件失败，失败信息为：", err.Error())
+	etagCheck := req.CompareFileEtag(remoteFileKey, saveAsName)
+	if !etagCheck {
+		log.Println("文件下载出错，etag 比对不一致。")
 	} else {
-		log.Println("文件下载成功，文件名为：", filekey)
+		log.Println("文件下载成功")
 	}
 }
