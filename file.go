@@ -207,7 +207,7 @@ func (u *UFileRequest) GetPublicURL(keyName string) string {
 //expiresDuation 表示下载链接的过期时间，从现在算起，24 * time.Hour 表示过期时间为一天。
 func (u *UFileRequest) GetPrivateURL(keyName string, expiresDuation time.Duration) string {
 	t := time.Now()
-	t.Add(expiresDuation)
+	t = t.Add(expiresDuation)
 	expires := strconv.FormatInt(t.Unix(), 10)
 	signature, publicKey := u.Auth.AuthorizationPrivateURL("GET", u.BucketName, keyName, expires, http.Header{})
 	query := url.Values{}
