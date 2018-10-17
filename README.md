@@ -27,6 +27,8 @@
 [获取私有空间下载地址](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.GetPrivateURL)，[获取公有空间下载地址](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.GetPublicURL)。  
 [删除文件](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.DeleteFile)  
 [查看文件信息](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.HeadFile)  
+[下载文件](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.DownloadFile)  
+[比对本地与远程文件的 Etag](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.CompareFileEtag)  
 
 ### Bucket 操作相关功能
 [创建 bucket](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.CreateBucket)  
