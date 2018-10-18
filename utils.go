@@ -35,6 +35,7 @@ func LoadConfig(jsonPath string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 	configBytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
