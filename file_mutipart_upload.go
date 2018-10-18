@@ -20,7 +20,7 @@ type MultipartState struct {
 	uploadID string
 	mimeType string
 	keyName  string
-	etags    []string
+	etags    map[int]string
 	mux      sync.Mutex
 }
 
@@ -193,7 +193,7 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 		return nil, err
 	}
 	response.keyName = keyName
-	response.etags = make([]string, 0)
+	response.etags = make(map[int]string)
 	response.mimeType = mimeType
 
 	return response, err
@@ -229,7 +229,7 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 
 	etag := strings.Trim(resp.Header.Get("Etag"), "\"") //为保证线程安全，这里就不保留 lastResponse
 	state.mux.Lock()
-	state.etags = append(state.etags, etag)
+	state.etags[partNumber] = etag
 	state.mux.Unlock()
 	return nil
 }
@@ -240,7 +240,14 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	query := &url.Values{}
 	query.Add("uploadId", state.uploadID)
 	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
-	etagsStr := strings.Join(state.etags, ",")
+	var etagsStr string
+	etagLen := len(state.etags)
+	for i := 0; i != etagLen; i++ {
+		etagsStr += state.etags[i]
+		if i != etagLen {
+			etagsStr += ","
+		}
+	}
 
 	req, err := http.NewRequest("POST", reqURL, strings.NewReader(etagsStr))
 	if err != nil {
