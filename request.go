@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -24,6 +25,7 @@ type UFileRequest struct {
 	BucketName string
 	Host       string
 	Client     *http.Client
+	baseURL    *url.URL
 
 	LastResponseStatus int
 	LastResponseHeader http.Header
@@ -46,6 +48,10 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 	req := newRequest(config.PublicKey, config.PrivateKey,
 		config.BucketName, config.FileHost, client)
 	req.verifyUploadMD5 = config.VerifyUploadMD5
+	if req.baseURL.Scheme == "" { //用户传了非自定义域名
+		req.baseURL.Host = req.BucketName + "." + req.Host
+		req.baseURL.Scheme = "http"
+	}
 	return req, nil
 }
 
@@ -59,6 +65,9 @@ func NewBucketRequest(config *Config, client *http.Client) (*UFileRequest, error
 	}
 	req := newRequest(config.PublicKey, config.PrivateKey, "", config.BucketHost, client)
 	req.verifyUploadMD5 = config.VerifyUploadMD5
+	if req.baseURL.Scheme == "" {
+		req.baseURL.Scheme = "http"
+	}
 	return req, nil
 }
 
@@ -88,7 +97,8 @@ func newRequest(publicKey, privateKey, bucket, host string, client *http.Client)
 	req := new(UFileRequest)
 	req.Auth = NewAuth(publicKey, privateKey)
 	req.BucketName = bucket
-	req.Host = host
+	req.Host = strings.TrimSpace(host)
+	req.baseURL, _ = url.Parse(host)
 
 	if client == nil {
 		client = new(http.Client)

@@ -288,5 +288,6 @@ func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool
 }
 
 func (u *UFileRequest) genFileURL(keyName string) string {
-	return fmt.Sprintf("http://%s.%s/%s", u.BucketName, u.Host, keyName)
+	u.baseURL.Path = keyName
+	return u.baseURL.String()
 }

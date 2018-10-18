@@ -178,6 +178,6 @@ func (u *UFileRequest) bucketRequest(query url.Values, data response) error {
 }
 
 func (u *UFileRequest) genBucketURL(query url.Values) string {
-	var scheme = "http://"
-	return scheme + u.Host + "/?" + u.Auth.AuthorizationBucketMgr(query)
+	u.baseURL.RawQuery = u.Auth.AuthorizationBucketMgr(query)
+	return u.baseURL.String()
 }
