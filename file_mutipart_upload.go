@@ -244,7 +244,7 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	etagLen := len(state.etags)
 	for i := 0; i != etagLen; i++ {
 		etagsStr += state.etags[i]
-		if i != etagLen {
+		if i != etagLen-1 {
 			etagsStr += ","
 		}
 	}
