@@ -278,7 +278,7 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 
 //CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致
 func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool {
-	err := u.HeadFile("test.txt")
+	err := u.HeadFile(remoteKeyName)
 	if err != nil {
 		return false
 	}
