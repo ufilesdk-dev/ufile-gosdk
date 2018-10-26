@@ -2,6 +2,7 @@ package ufsdk
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -25,6 +26,7 @@ type UFileRequest struct {
 	BucketName string
 	Host       string
 	Client     *http.Client
+	Context    context.Context
 	baseURL    *url.URL
 
 	LastResponseStatus int
@@ -104,6 +106,7 @@ func newRequest(publicKey, privateKey, bucket, host string, client *http.Client)
 		client = new(http.Client)
 	}
 	req.Client = client
+	req.Context = context.TODO()
 	return req
 }
 
