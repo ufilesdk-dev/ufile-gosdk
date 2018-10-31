@@ -99,6 +99,7 @@ func newRequest(publicKey, privateKey, bucket, host string, client *http.Client)
 	req.BucketName = bucket
 	req.Host = strings.TrimSpace(host)
 	req.baseURL, _ = url.Parse(host)
+	req.baseURL.Path = "/" //for default usage.
 
 	if client == nil {
 		client = new(http.Client)

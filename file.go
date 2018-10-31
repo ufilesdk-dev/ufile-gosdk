@@ -288,6 +288,5 @@ func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool
 }
 
 func (u *UFileRequest) genFileURL(keyName string) string {
-	u.baseURL.Path = keyName
-	return u.baseURL.String()
+	return u.baseURL.String() + keyName
 }
