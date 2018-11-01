@@ -44,18 +44,18 @@
 ## 示例代码
 SDK 主要分为两个模块，一个是 bucket 管理，一个是 file 管理。使用对象存储你需要频繁的调用 file 管理相关的接口，bucket 管理用到的地方不会太频繁。以下是用 SDK 上传一个文件的例子：
 ```go
-    import ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
-	config, err := ufsdk.LoadConfig(configFile)
-	if err != nil {
-		panic(err.Error())
-	}
-    req := ufsdk.NewUFileRequest(config, nil)
-    err = req.PutFile(filePath, keyName, "")
-	if err != nil {
-        fmt.Println("文件上传失败!!，错误信息为：", err.Error())
-        //把 HTTP 详细的 HTTP response dump 出来
-        fmt.Printf("%s\n",req.DumpResponse(true))
-    }
+import ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
+config, err := ufsdk.LoadConfig(configFile)
+if err != nil {
+    panic(err.Error())
+}
+req := ufsdk.NewFileRequest(config, nil)
+err = req.PutFile(filePath, keyName, "")
+if err != nil {
+    fmt.Println("文件上传失败!!，错误信息为：", err.Error())
+    //把 HTTP 详细的 HTTP response dump 出来
+    fmt.Printf("%s\n",req.DumpResponse(true))
+}
 ```
 更详细的代码请参考 [example/demo_file.go](/example/demo_file.go) 和 [example/demo_bucket.go](example/demo_bucket.go)
 
