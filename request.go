@@ -126,11 +126,11 @@ func (u *UFileRequest) responseParse(resp *http.Response) error {
 }
 
 func (u *UFileRequest) request(req *http.Request) error {
-	req.Header.Set("User-Agent", "UFile-GoSDK-Client/2.0")
-	resp, err := u.Client.Do(req.WithContext(u.Context))
+	resp, err := u.requestWithResp(req)
 	if err != nil {
 		return err
 	}
+
 	err = u.responseParse(resp)
 	if err != nil {
 		return err
@@ -142,4 +142,21 @@ func (u *UFileRequest) request(req *http.Request) error {
 	}
 
 	return nil
+}
+
+func (u *UFileRequest) requestWithResp(req *http.Request) (resp *http.Response, err error) {
+	req.Header.Set("User-Agent", "UFile-GoSDK-Client/2.0")
+
+	resp, err = u.Client.Do(req.WithContext(u.Context))
+	// If we got an error, and the context has been canceled,
+	// the context's error is probably more useful.
+	if err != nil {
+		select {
+		case <-u.Context.Done():
+			err = u.Context.Err()
+		default:
+		}
+		return
+	}
+	return
 }
