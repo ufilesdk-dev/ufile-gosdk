@@ -222,7 +222,7 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("Content-Length", strconv.Itoa(buf.Len()))
 
-	resp, err := safeRequest(req, u.Client)
+	resp, err := u.requestWithResp(req)
 	if err != nil {
 		return err
 	}
@@ -259,19 +259,6 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	req.Header.Add("Content-Length", strconv.Itoa(len(etagsStr)))
 
 	return u.request(req)
-}
-
-func safeRequest(req *http.Request, client *http.Client) (resp *http.Response, err error) {
-	req.Header.Set("User-Agent", "UFile-GoSDK-Client/2.0")
-	resp, err = client.Do(req)
-	if err != nil {
-		return
-	}
-	if !VerifyHTTPCode(resp.StatusCode) {
-		err = fmt.Errorf("Remote response code is %d - %s",
-			resp.StatusCode, http.StatusText(resp.StatusCode))
-	}
-	return
 }
 
 func divideCeil(a, b int64) int {
