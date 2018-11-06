@@ -226,6 +226,7 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	etag := strings.Trim(resp.Header.Get("Etag"), "\"") //为保证线程安全，这里就不保留 lastResponse
 	state.mux.Lock()
