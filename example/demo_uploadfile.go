@@ -8,7 +8,7 @@ import (
 const (
 	uploadFile    = "./FakeBigFile.txt"
 	configFile    = "config.json"
-	remoteFileKey = "test.txt"
+	remoteFileKey = "/test.txt"
 )
 
 func main() {

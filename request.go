@@ -100,7 +100,8 @@ func newRequest(publicKey, privateKey, bucket, host string, client *http.Client)
 	req.Auth = NewAuth(publicKey, privateKey)
 	req.BucketName = bucket
 	req.Host = strings.TrimSpace(host)
-	req.baseURL, _ = url.Parse(host)
+	req.baseURL = new(url.URL)
+	req.baseURL.Host = req.Host
 	req.baseURL.Path = "/" //for default usage.
 
 	if client == nil {
