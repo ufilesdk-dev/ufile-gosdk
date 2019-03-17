@@ -127,7 +127,6 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 		return err
 	}
 
-	req.Header.Add("User-Agent", "Go-http-client/1.1")
 	if mimeType == "" {
 		mimeType = getMimeType(file)
 	}

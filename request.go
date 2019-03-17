@@ -77,6 +77,9 @@ func NewBucketRequest(config *Config, client *http.Client) (*UFileRequest, error
 //如果你需要 Dump 到其他的地方，直接拿返回值即可。
 func (u *UFileRequest) DumpResponse(isDumpBody bool) []byte {
 	var b bytes.Buffer
+	if u.lastResponse == nil {
+		return nil
+	}
 	b.WriteString(fmt.Sprintf("%s %d\n", u.lastResponse.Proto, u.LastResponseStatus))
 	for k, vs := range u.LastResponseHeader {
 		str := k + ": "

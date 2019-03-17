@@ -176,9 +176,9 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 	if err != nil {
 		return nil, err
 	}
-	if mimeType == "" {
-		return nil, fmt.Errorf("Mime Type 不能为空！！！")
-	}
+	//	if mimeType == "" {
+	//		return nil, fmt.Errorf("Mime Type 不能为空！！！")
+	//	}
 	req.Header.Add("Content-Type", mimeType)
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)

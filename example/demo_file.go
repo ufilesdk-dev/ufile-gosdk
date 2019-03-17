@@ -2,24 +2,10 @@ package main
 
 import (
 	"log"
-	"math/rand"
 	"os"
-	"strconv"
-	"time"
 
 	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
-)
-
-const (
-	fakeBigFileSize = (1 << 20) * 20 //20MB
-	fakeBigFilePath = "./FakeBigFile.txt"
-
-	fakeSmallFileSize = (1 << 20) * 2 //2MB
-	fakeSmallFilePath = "./FakeSmallFile.txt"
-
-	configFile = "config.json"
-
-	pageSize = 1 << 12 //4K
+	"github.com/ufilesdk-dev/ufile-gosdk/example/helper"
 )
 
 const (
@@ -31,13 +17,13 @@ const (
 
 func main() {
 	log.SetFlags(log.Lshortfile)
-	if _, err := os.Stat(fakeSmallFilePath); os.IsNotExist(err) {
-		generateFakefile(fakeSmallFilePath, fakeSmallFileSize)
+	if _, err := os.Stat(helper.FakeSmallFilePath); os.IsNotExist(err) {
+		helper.GenerateFakefile(helper.FakeSmallFilePath, helper.FakeSmallFileSize)
 	}
-	if _, err := os.Stat(fakeBigFilePath); os.IsNotExist(err) {
-		generateFakefile(fakeBigFilePath, fakeBigFileSize)
+	if _, err := os.Stat(helper.FakeBigFilePath); os.IsNotExist(err) {
+		helper.GenerateFakefile(helper.FakeBigFilePath, helper.FakeBigFileSize)
 	}
-	config, err := ufsdk.LoadConfig(configFile)
+	config, err := ufsdk.LoadConfig(helper.ConfigFile)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -47,18 +33,18 @@ func main() {
 	}
 
 	var fileKey string
-	fileKey = generateUniqKey()
-	scheduleUploadExample(fakeSmallFilePath, fileKey, putUpload, req)
-	fileKey = generateUniqKey()
-	scheduleUploadExample(fakeSmallFilePath, fileKey, postUpload, req)
+	fileKey = helper.GenerateUniqKey()
+	scheduleUploadhelper(helper.FakeSmallFilePath, fileKey, putUpload, req)
+	fileKey = helper.GenerateUniqKey()
+	scheduleUploadhelper(helper.FakeSmallFilePath, fileKey, postUpload, req)
 
-	fileKey = generateUniqKey()
-	scheduleUploadExample(fakeBigFilePath, fileKey, mput, req)
-	fileKey = generateUniqKey()
-	scheduleUploadExample(fakeBigFilePath, fileKey, asyncmput, req)
+	fileKey = helper.GenerateUniqKey()
+	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, mput, req)
+	fileKey = helper.GenerateUniqKey()
+	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, asyncmput, req)
 }
 
-func scheduleUploadExample(filePath, keyName string, uploadType int, req *ufsdk.UFileRequest) {
+func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.UFileRequest) {
 	log.Println("上传的文件 Key 为：", keyName)
 	var err error
 	switch uploadType {
@@ -116,26 +102,4 @@ func scheduleUploadExample(filePath, keyName string, uploadType int, req *ufsdk.
 		return
 	}
 	log.Println("删除文件成功")
-}
-
-func generateFakefile(filepath string, fsize int) {
-	f, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		panic("创建测试文件失败，失败信息为：" + err.Error())
-	}
-	defer f.Close()
-	bytes := make([]byte, pageSize, pageSize) //以 4K 一次大小写文件。
-	for i := 0; i < pageSize; i++ {
-		bytes[i] = 'm' //全部填充 m
-	}
-
-	for i := pageSize; i <= fsize; i += pageSize {
-		f.Write(bytes)
-	}
-}
-
-func generateUniqKey() string {
-	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
-	randInt := seededRand.Int()
-	return strconv.Itoa(randInt) + ".txt"
 }
