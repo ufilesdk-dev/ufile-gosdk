@@ -86,7 +86,21 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
 //大于 100M 的文件推荐使用本接口上传。
+//同时并发上传的分片数量为10
 func (u *UFileRequest) AsyncMPut(filePath, keyName, mimeType string) error {
+	return u.AsyncUpload(filePath, keyName, mimeType, 10)
+}
+
+//AsyncUpload AsyncMPut 的升级版, jobs 表示同时并发的数量。
+func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int) error {
+	if jobs <= 0 {
+		jobs = 1
+	}
+
+	if jobs >= 30 {
+		jobs = 10
+	}
+
 	file, err := openFile(filePath)
 	if err != nil {
 		return err
@@ -102,9 +116,8 @@ func (u *UFileRequest) AsyncMPut(filePath, keyName, mimeType string) error {
 	}
 	fsize := getFileSize(file)
 	chunkCount := divideCeil(fsize, int64(state.BlkSize)) //向上取整
-	maxJobRunning := 10                                   //最多允许 10 个线程同时跑
-	concurrentChan := make(chan error, maxJobRunning)
-	for i := 0; i != maxJobRunning; i++ {
+	concurrentChan := make(chan error, jobs)
+	for i := 0; i != jobs; i++ {
 		concurrentChan <- nil
 	}
 
@@ -229,6 +242,9 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	defer resp.Body.Close()
 
 	etag := strings.Trim(resp.Header.Get("Etag"), "\"") //为保证线程安全，这里就不保留 lastResponse
+	if etag == "" {
+		etag = strings.Trim(resp.Header.Get("ETag"), "\"") //为保证线程安全，这里就不保留 lastResponse
+	}
 	state.mux.Lock()
 	state.etags[partNumber] = etag
 	state.mux.Unlock()
