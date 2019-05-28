@@ -50,17 +50,17 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	switch uploadType {
 	case putUpload:
 		log.Println("正在使用PUT接口上传文件...")
-		err = req.PutFile(filePath, keyName, "", "")
+		err = req.PutFile(filePath, keyName, "")
 		break
 	case postUpload:
 		log.Println("正在使用 POST 接口上传文件...")
-		err = req.PostFile(filePath, keyName, "", "")
+		err = req.PostFile(filePath, keyName, "")
 	case mput:
 		log.Println("正在使用同步分片上传接口上传文件...")
-		err = req.MPut(filePath, keyName, "", "")
+		err = req.MPut(filePath, keyName, "")
 	case asyncmput:
 		log.Println("正在使用异步分片上传接口上传文件...")
-		err = req.AsyncMPut(filePath, keyName, "", "")
+		err = req.AsyncMPut(filePath, keyName, "")
 	}
 	if err != nil {
 		log.Println("文件上传失败!!，错误信息为：", err.Error())

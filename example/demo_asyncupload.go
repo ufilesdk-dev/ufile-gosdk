@@ -31,7 +31,7 @@ func main() {
 	}
 	log.Println("正在上传文件。。。。")
 
-	err = req.AsyncUpload(*path, *key, "", "", *thread)
+	err = req.AsyncUpload(*path, *key, "", *thread)
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return

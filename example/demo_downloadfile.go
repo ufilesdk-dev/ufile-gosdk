@@ -26,7 +26,7 @@ func main() {
 	}
 	log.Println("正在上传文件。。。。")
 
-	err = req.PutFile(uploadFile, remoteFileKey, "", "")
+	err = req.PutFile(uploadFile, remoteFileKey, "")
 	if err != nil {
 		log.Printf("上传文件失败，错误信息为：%s\n", req.DumpResponse(true))
 		return

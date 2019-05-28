@@ -26,7 +26,7 @@ func main() {
 
 	etag := ufsdk.GetFileEtag(filePath)
 
-	err = req.AsyncMPut(filePath, "test.txt", "", "")
+	err = req.AsyncMPut(filePath, "test.txt", "")
 	if err != nil {
 		log.Println("错误返回，失败的HTTP Response 为：")
 		log.Printf("%s", req.DumpResponse(true))

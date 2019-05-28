@@ -24,7 +24,7 @@ func main() {
 	}
 	log.Println("正在上传文件。。。。")
 
-	err = req.AsyncMPut(uploadFile, remoteFileKey, "", "")
+	err = req.AsyncMPut(uploadFile, remoteFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return

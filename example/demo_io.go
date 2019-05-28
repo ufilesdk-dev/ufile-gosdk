@@ -64,9 +64,9 @@ func testUpload(req *ufsdk.UFileRequest, filePath, keyName string, uploadType in
 	}
 	switch uploadType {
 	case PutType:
-		err = req.IOPut(f, keyName, "", "")
+		err = req.IOPut(f, keyName, "")
 	case MputType:
-		err = req.IOMutipartAsyncUpload(f, keyName, "", "")
+		err = req.IOMutipartAsyncUpload(f, keyName, "")
 	default:
 		return errors.New("wrong upload type")
 	}
