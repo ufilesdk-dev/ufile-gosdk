@@ -20,14 +20,15 @@ const (
 
 //FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
 type FileDataSet struct {
-	BucketName  string `json:"BucketName,omitempty"`
-	FileName    string `json:"FileName,omitempty"`
-	Hash        string `json:"Hash,omitempty"`
-	MimeType    string `json:"MimeType,omitempty"`
-	FirstObject string `json:"first_object,omitempty"`
-	Size        int    `json:"Size,omitempty"`
-	CreateTime  int    `json:"CreateTime,omitempty"`
-	ModifyTime  int    `json:"ModifyTime,omitempty"`
+	BucketName   string `json:"BucketName,omitempty"`
+	FileName     string `json:"FileName,omitempty"`
+	Hash         string `json:"Hash,omitempty"`
+	MimeType     string `json:"MimeType,omitempty"`
+	FirstObject  string `json:"first_object,omitempty"`
+	Size         int    `json:"Size,omitempty"`
+	CreateTime   int    `json:"CreateTime,omitempty"`
+	ModifyTime   int    `json:"ModifyTime,omitempty"`
+    StorageClass int    `json:"StorageClass,omitempty"`
 }
 
 //FileListResponse 用 PrefixFileList 接口返回的 list 数据。
@@ -71,8 +72,9 @@ func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
 //注意：使用本接口上传文件后，调用 UploadHit 接口会返回 404，因为经过 form 包装的文件，etag 值会不一样，所以会调用失败。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
+//storageClass 表示文件的存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
 //小于 100M 的文件推荐使用本接口上传。
-func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) {
+func (u *UFileRequest) PostFile(filePath, keyName, mimeType, storageClass string) (err error) {
 	file, err := openFile(filePath)
 	if err != nil {
 		return err
@@ -98,6 +100,10 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 		return err
 	}
 
+    if storageClass == "" {
+        storageClass = "STANDARD"
+    }
+    req.Header.Add("X-Ufile-Storage-Class", storageClass)
 	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundry)
 	contentLength := body.Len()
 	req.Header.Add("Content-Length", strconv.Itoa(contentLength))
@@ -108,8 +114,9 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 //PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
 //mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
+//storageClass 表示文件的存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
 //小于 100M 的文件推荐使用本接口上传。
-func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
+func (u *UFileRequest) PutFile(filePath, keyName, mimeType, storageClass string) error {
 	reqURL := u.genFileURL(keyName)
 	file, err := openFile(filePath)
 	if err != nil {
@@ -131,6 +138,11 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 		mimeType = getMimeType(file)
 	}
 	req.Header.Add("Content-Type", mimeType)
+
+    if storageClass == "" {
+       storageClass = "STANDARD"
+    }
+    req.Header.Add("X-Ufile-Storage-Class", storageClass)
 
 	if u.verifyUploadMD5 {
 		md5Str := fmt.Sprintf("%x", md5.Sum(b))
@@ -288,4 +300,34 @@ func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool
 
 func (u *UFileRequest) genFileURL(keyName string) string {
 	return u.baseURL.String() + keyName
+}
+
+//Restore 用于解冻冷存类型的文件
+func (u *UFileRequest) Restore(keyName string) (err error) {
+       reqURL := u.genFileURL(keyName) + "?restore"
+       req, err := http.NewRequest("PUT", reqURL, nil)
+       if err != nil {
+               return err
+       }
+       authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+       req.Header.Add("authorization", authorization)
+
+       return u.request(req)
+}
+
+//ClassSwitch 存储类型转换接口
+//keyName 文件名称
+//storageClass 所要转换的新文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
+func (u *UFileRequest) ClassSwitch(keyName, storageClass string) (err error) {
+    query := &url.Values{}
+       query.Add("storageClass", storageClass)
+       reqURL := u.genFileURL(keyName) + "?" + query.Encode()
+       req, err := http.NewRequest("PUT", reqURL, nil)
+       if err != nil {
+               return err
+       }
+       authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+       req.Header.Add("authorization", authorization)
+
+       return u.request(req)
 }

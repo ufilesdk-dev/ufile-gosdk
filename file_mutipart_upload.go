@@ -47,8 +47,9 @@ type uploadChan struct {
 //MPut 分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是同步一片一片的上传。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
+//storageClass 表示文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
 //大于 100M 的文件推荐使用本接口上传。
-func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
+func (u *UFileRequest) MPut(filePath, keyName, mimeType, storageClass string) error {
 	file, err := openFile(filePath)
 	if err != nil {
 		return err
@@ -57,8 +58,10 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 	if mimeType == "" {
 		mimeType = getMimeType(file)
 	}
-
-	state, err := u.InitiateMultipartUpload(keyName, mimeType)
+    if storageClass == "" {
+        storageClass = "STANDARD"
+    }
+	state, err := u.InitiateMultipartUpload(keyName, mimeType, storageClass)
 	if err != nil {
 		return err
 	}
@@ -85,14 +88,15 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 //AsyncMPut 异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
+//storageClass 表示文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
 //大于 100M 的文件推荐使用本接口上传。
 //同时并发上传的分片数量为10
-func (u *UFileRequest) AsyncMPut(filePath, keyName, mimeType string) error {
-	return u.AsyncUpload(filePath, keyName, mimeType, 10)
+func (u *UFileRequest) AsyncMPut(filePath, keyName, mimeType, storageClass string) error {
+	return u.AsyncUpload(filePath, keyName, mimeType, storageClass, 10)
 }
 
 //AsyncUpload AsyncMPut 的升级版, jobs 表示同时并发的数量。
-func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int) error {
+func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType, storageClass string, jobs int) error {
 	if jobs <= 0 {
 		jobs = 1
 	}
@@ -109,8 +113,10 @@ func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int)
 	if mimeType == "" {
 		mimeType = getMimeType(file)
 	}
-
-	state, err := u.InitiateMultipartUpload(keyName, mimeType)
+    if storageClass == "" {
+        storageClass = "STANDARD"
+    }
+	state, err := u.InitiateMultipartUpload(keyName, mimeType, storageClass)
 	if err != nil {
 		return err
 	}
@@ -183,7 +189,8 @@ func (u *UFileRequest) AbortMultipartUpload(state *MultipartState) error {
 //keyName 表示传到 ufile 的文件名。
 //
 //mimeType 表示文件的 mimeType, 传空会报错，你可以使用 GetFileMimeType 方法检测文件的 mimeType。如果您上传的不是文件，您可以使用 http.DetectContentType https://golang.org/src/net/http/sniff.go?s=646:688#L11进行检测。
-func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*MultipartState, error) {
+//storageClass 表示文件的存储类型
+func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType, storageClass string) (*MultipartState, error) {
 	reqURL := u.genFileURL(keyName) + "?uploads"
 	req, err := http.NewRequest("POST", reqURL, nil)
 	if err != nil {
@@ -193,6 +200,7 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 	//		return nil, fmt.Errorf("Mime Type 不能为空！！！")
 	//	}
 	req.Header.Add("Content-Type", mimeType)
+    req.Header.Add("X-Ufile-Storage-Class", storageClass)
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)
 

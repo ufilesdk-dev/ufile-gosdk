@@ -12,8 +12,9 @@ import (
 
 // IOPut 流式 put 上传接口，你必须确保你的 reader 接口每次调用是递进式的调用，也就是像文件那样的读取方式。
 // mimeType 在这里的检测不会很准确，你可以手动指定更精确的 mimetype。
+// storageClass 表示文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
 // 这里的 reader 接口会把数据全部读到 HTTP Body 里面，如果你接口的数据特别大，请使用 IOMutipartAsyncUpload 接口。
-func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err error) {
+func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType, storageClass string) (err error) {
 	if keyName == "" {
 		err = errors.New("keyName cannot be empty")
 		return
@@ -36,6 +37,10 @@ func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err er
 		return err
 	}
 
+    if storageClass == "" {
+        storageClass = "STANDARD"
+    }
+    req.Header.Add("X-Ufile-Storage-Class", storageClass)
 	req.Header.Add("Content-Type", mimeType)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
@@ -47,13 +52,14 @@ func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err er
 //
 // IOMutipartAsyncUpload 流式分片上传接口，你必须确保你的 reader 接口每次调用是递进式的调用，也就是像文件那样的读取方式。
 // mimeType 在这里的检测不会很准确，你可以手动指定更精确的 mimetype。
+// storageClass 表示文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
 // 这里的会每次读取4M 的数据到 buffer 里面，适用于大量数据上传。
-func (u *UFileRequest) IOMutipartAsyncUpload(reader io.Reader, keyName, mimeType string) (err error) {
+func (u *UFileRequest) IOMutipartAsyncUpload(reader io.Reader, keyName, mimeType, storageClass string) (err error) {
 	if keyName == "" {
 		err = errors.New("keyName cannot be empty")
 		return
 	}
-	state, err := u.InitiateMultipartUpload(keyName, mimeType)
+	state, err := u.InitiateMultipartUpload(keyName, mimeType, storageClass)
 	if err != nil {
 		return
 	}

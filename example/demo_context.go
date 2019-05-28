@@ -35,7 +35,7 @@ func exampeMput(req *ufsdk.UFileRequest, timeout time.Duration) {
 	var cancelFunc context.CancelFunc
 	req.Context, cancelFunc = context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
-	err := req.MPut(uploadFile, remoteFileKey, "")
+	err := req.MPut(uploadFile, remoteFileKey, "", "")
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -47,7 +47,7 @@ func exampeAsyncMput(req *ufsdk.UFileRequest, timeout time.Duration) {
 	var cancelFunc context.CancelFunc
 	req.Context, cancelFunc = context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
-	err := req.AsyncMPut(uploadFile, remoteFileKey, "")
+	err := req.AsyncMPut(uploadFile, remoteFileKey, "", "")
 	if err != nil {
 		log.Println(err.Error())
 		return
