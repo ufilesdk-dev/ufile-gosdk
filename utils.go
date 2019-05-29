@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"errors"
 )
 
 const (
@@ -180,4 +181,12 @@ func structPrettyStr(data interface{}) string {
 		return fmt.Sprintf("%s\n", bytes)
 	}
 	return ""
+}
+
+//storageClass 表示文件的存储类型，分别是标准(2):STANDARD、低频(3):IA、冷存(4):ARCHIVE
+func judgeStorageClass(storageClass int) error {
+	if storageClass != STORAGE_CLASS_STANDARD && storageClass != STORAGE_CLASS_IA && storageClass != STORAGE_CLASS_ARCHIVE {
+		return errors.New("storageClass文件存储类型参数需从标准、低频、冷存中选择一项填写")
+	}
+    return nil
 }
