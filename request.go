@@ -65,28 +65,18 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 	return req, nil
 }
 
-//NewArchiveFileRequest 创建一个用于管理文件的 request
+//NewArchiveFileRequest 创建一个用于做冷存文件的 request
 //Request 创建后的 instance 不是线程安全的，如果你需要做并发的操作，请创建多个 UFileRequest。
 //config 参数里面包含了公私钥，以及其他必填的参数。详情见 config 相关文档。
 //storageClass 表示文件的存储类型，分别是标准:STANDARD、低频:IA、冷存:ARCHIVE
 //client 这里你可以传空，会使用默认的 http.Client。如果你需要设置超时以及一些其他相关的网络配置选项请传入一个自定义的 client。
 func NewArchiveFileRequest(config *Config, storageClass int, client *http.Client) (*UFileRequest, error) {
-	config.BucketName = strings.TrimSpace(config.BucketName)
-	config.FileHost = strings.TrimSpace(config.FileHost)
-	if config.BucketName == "" || config.FileHost == "" {
-		return nil, errors.New("管理文件上传必须要提供 bucket 名字和所在地域的 Host 域名")
+	req,err = NewFileRequest(config, client)
+	if err != nil{
+		return nil, err
 	}
-	if storageClass != STORAGE_CLASS_STANDARD && storageClass != STORAGE_CLASS_IA && storageClass != STORAGE_CLASS_ARCHIVE {
-		return nil, errors.New("storageClass文件存储类型参数需从标准:2、低频:3、冷存:4 中选择一项填写")
-	}
-	req := newRequest(config.PublicKey, config.PrivateKey,
-		config.BucketName, config.FileHost, client)
-	req.verifyUploadMD5 = config.VerifyUploadMD5
+
 	req.StorageClass = storageClass
-	if req.baseURL.Scheme == "" { //用户传了非自定义域名
-		req.baseURL.Host = req.BucketName + "." + req.Host
-		req.baseURL.Scheme = "http"
-	}
 	return req, nil
 }
 
