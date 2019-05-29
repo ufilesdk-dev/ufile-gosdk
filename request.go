@@ -71,11 +71,15 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 //storageClass 表示文件的存储类型，分别是标准:STANDARD、低频:IA、冷存:ARCHIVE
 //client 这里你可以传空，会使用默认的 http.Client。如果你需要设置超时以及一些其他相关的网络配置选项请传入一个自定义的 client。
 func NewArchiveFileRequest(config *Config, storageClass int, client *http.Client) (*UFileRequest, error) {
-	req,err = NewFileRequest(config, client)
+	req, err := NewFileRequest(config, client)
 	if err != nil{
 		return nil, err
 	}
 
+	err = judgeStorageClass(storageClass)
+	if err != nil{
+		return nil, err
+	}
 	req.StorageClass = storageClass
 	return req, nil
 }

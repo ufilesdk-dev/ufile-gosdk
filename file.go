@@ -293,6 +293,10 @@ func (u *UFileRequest) genFileURL(keyName string) string {
 
 //Restore 用于解冻冷存类型的文件
 func (u *UFileRequest) Restore(keyName string) (err error) {
+	err = judgeStorageClass(u.StorageClass)
+	if err != nil{
+		return err
+	}
 	reqURL := u.genFileURL(keyName) + "?restore"
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
@@ -308,11 +312,15 @@ func (u *UFileRequest) Restore(keyName string) (err error) {
 //storageClass 所要转换的新文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
 func (u *UFileRequest) ClassSwitch(keyName string, storageClass int) (err error) {
 	query := &url.Values{}
+	err = judgeStorageClass(storageClass)
+	if err != nil{
+		return err
+	}
 	if storageClass == STORAGE_CLASS_STANDARD {
 		query.Add("storageClass", "STANDARD")
-	} else if StorageClass == STORAGE_CLASS_IA {
+	} else if storageClass == STORAGE_CLASS_IA {
 		query.Add("storageClass", "IA")
-	} else if StorageClass == STORAGE_CLASS_ARCHIVE {
+	} else if storageClass == STORAGE_CLASS_ARCHIVE {
 		query.Add("storageClass", "ARCHIVE")
 	}
 	reqURL := u.genFileURL(keyName) + "?" + query.Encode()

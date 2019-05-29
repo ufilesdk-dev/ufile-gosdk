@@ -60,7 +60,7 @@ func main() {
 	log.Println("文件上传成功。")
 
 	//4、解冻归档存储类型文件
-	req, err = ufsdk.NewFileRequest(config, nil)
+	req, err = ufsdk.NewArchiveFileRequest(config, ufsdk.STORAGE_CLASS_ARCHIVE, nil)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -73,6 +73,10 @@ func main() {
 	log.Println("文件解冻成功。")
 
 	//5、转换文件存储类型
+	req, err = ufsdk.NewArchiveFileRequest(config, ufsdk.STORAGE_CLASS_ARCHIVE, nil)
+	if err != nil {
+		panic(err.Error())
+	}
 	log.Println("正在转换归档存储类型文件为低频类型。。。。")
 	err = req.ClassSwitch(remoteArFileKey, ufsdk.STORAGE_CLASS_IA)
 	if err != nil {
@@ -82,6 +86,10 @@ func main() {
 	log.Println("文件转换存储类型成功。")
 
 	//6、获取文件列表
+	req, err = ufsdk.NewFileRequest(config, nil)
+	if err != nil {
+		panic(err.Error())
+	}
 	log.Println("正在获取文件列表。。。。")
 	list, err := req.PrefixFileList("/test_", "", 10)
 	if err != nil {
