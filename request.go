@@ -34,7 +34,14 @@ type UFileRequest struct {
 	LastResponseBody   []byte
 	verifyUploadMD5    bool
 	lastResponse       *http.Response
+	StorageClass       int
 }
+
+const (
+	STORAGE_CLASS_STANDARD int = iota + 2
+	STORAGE_CLASS_IA
+	STORAGE_CLASS_ARCHIVE
+)
 
 //NewFileRequest 创建一个用于管理文件的 request，管理文件的 url 与 管理 bucket 接口不一样，
 //请将 bucket 和文件管理所需要的分开，NewUBucketRequest 是用来管理 bucket 的。
@@ -50,6 +57,32 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 	req := newRequest(config.PublicKey, config.PrivateKey,
 		config.BucketName, config.FileHost, client)
 	req.verifyUploadMD5 = config.VerifyUploadMD5
+	req.StorageClass = 0
+	if req.baseURL.Scheme == "" { //用户传了非自定义域名
+		req.baseURL.Host = req.BucketName + "." + req.Host
+		req.baseURL.Scheme = "http"
+	}
+	return req, nil
+}
+
+//NewArchiveFileRequest 创建一个用于管理文件的 request
+//Request 创建后的 instance 不是线程安全的，如果你需要做并发的操作，请创建多个 UFileRequest。
+//config 参数里面包含了公私钥，以及其他必填的参数。详情见 config 相关文档。
+//storageClass 表示文件的存储类型，分别是标准:STANDARD、低频:IA、冷存:ARCHIVE
+//client 这里你可以传空，会使用默认的 http.Client。如果你需要设置超时以及一些其他相关的网络配置选项请传入一个自定义的 client。
+func NewArchiveFileRequest(config *Config, storageClass int, client *http.Client) (*UFileRequest, error) {
+	config.BucketName = strings.TrimSpace(config.BucketName)
+	config.FileHost = strings.TrimSpace(config.FileHost)
+	if config.BucketName == "" || config.FileHost == "" {
+		return nil, errors.New("管理文件上传必须要提供 bucket 名字和所在地域的 Host 域名")
+	}
+	if storageClass != STORAGE_CLASS_STANDARD && storageClass != STORAGE_CLASS_IA && storageClass != STORAGE_CLASS_ARCHIVE {
+		return nil, errors.New("storageClass文件存储类型参数需从标准:2、低频:3、冷存:4 中选择一项填写")
+	}
+	req := newRequest(config.PublicKey, config.PrivateKey,
+		config.BucketName, config.FileHost, client)
+	req.verifyUploadMD5 = config.VerifyUploadMD5
+	req.StorageClass = storageClass
 	if req.baseURL.Scheme == "" { //用户传了非自定义域名
 		req.baseURL.Host = req.BucketName + "." + req.Host
 		req.baseURL.Scheme = "http"
@@ -150,6 +183,14 @@ func (u *UFileRequest) request(req *http.Request) error {
 
 func (u *UFileRequest) requestWithResp(req *http.Request) (resp *http.Response, err error) {
 	req.Header.Set("User-Agent", "UFile-GoSDK-Client/2.0")
+
+	if u.StorageClass == STORAGE_CLASS_STANDARD {
+		req.Header.Set("X-Ufile-Storage-Class", "STANDARD")
+	} else if u.StorageClass == STORAGE_CLASS_IA {
+		req.Header.Set("X-Ufile-Storage-Class", "IA")
+	} else if u.StorageClass == STORAGE_CLASS_ARCHIVE {
+		req.Header.Set("X-Ufile-Storage-Class", "ARCHIVE")
+	}
 
 	resp, err = u.Client.Do(req.WithContext(u.Context))
 	// If we got an error, and the context has been canceled,

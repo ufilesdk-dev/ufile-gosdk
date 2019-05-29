@@ -20,14 +20,15 @@ const (
 
 //FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
 type FileDataSet struct {
-	BucketName  string `json:"BucketName,omitempty"`
-	FileName    string `json:"FileName,omitempty"`
-	Hash        string `json:"Hash,omitempty"`
-	MimeType    string `json:"MimeType,omitempty"`
-	FirstObject string `json:"first_object,omitempty"`
-	Size        int    `json:"Size,omitempty"`
-	CreateTime  int    `json:"CreateTime,omitempty"`
-	ModifyTime  int    `json:"ModifyTime,omitempty"`
+	BucketName   string `json:"BucketName,omitempty"`
+	FileName     string `json:"FileName,omitempty"`
+	Hash         string `json:"Hash,omitempty"`
+	MimeType     string `json:"MimeType,omitempty"`
+	FirstObject  string `json:"first_object,omitempty"`
+	Size         int    `json:"Size,omitempty"`
+	CreateTime   int    `json:"CreateTime,omitempty"`
+	ModifyTime   int    `json:"ModifyTime,omitempty"`
+	StorageClass int    `json:"StorageClass,omitempty"`
 }
 
 //FileListResponse 用 PrefixFileList 接口返回的 list 数据。
@@ -288,4 +289,38 @@ func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool
 
 func (u *UFileRequest) genFileURL(keyName string) string {
 	return u.baseURL.String() + keyName
+}
+
+//Restore 用于解冻冷存类型的文件
+func (u *UFileRequest) Restore(keyName string) (err error) {
+	reqURL := u.genFileURL(keyName) + "?restore"
+	req, err := http.NewRequest("PUT", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
+}
+
+//ClassSwitch 存储类型转换接口
+//keyName 文件名称
+//storageClass 所要转换的新文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
+func (u *UFileRequest) ClassSwitch(keyName string, storageClass int) (err error) {
+	query := &url.Values{}
+	if storageClass == STORAGE_CLASS_STANDARD {
+		query.Add("storageClass", "STANDARD")
+	} else if StorageClass == STORAGE_CLASS_IA {
+		query.Add("storageClass", "IA")
+	} else if StorageClass == STORAGE_CLASS_ARCHIVE {
+		query.Add("storageClass", "ARCHIVE")
+	}
+	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
+	req, err := http.NewRequest("PUT", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
 }
