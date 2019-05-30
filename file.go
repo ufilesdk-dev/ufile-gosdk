@@ -20,15 +20,16 @@ const (
 
 //FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
 type FileDataSet struct {
-	BucketName   string `json:"BucketName,omitempty"`
-	FileName     string `json:"FileName,omitempty"`
-	Hash         string `json:"Hash,omitempty"`
-	MimeType     string `json:"MimeType,omitempty"`
-	FirstObject  string `json:"first_object,omitempty"`
-	Size         int    `json:"Size,omitempty"`
-	CreateTime   int    `json:"CreateTime,omitempty"`
-	ModifyTime   int    `json:"ModifyTime,omitempty"`
-	StorageClass int    `json:"StorageClass,omitempty"`
+	BucketName    string `json:"BucketName,omitempty"`
+	FileName      string `json:"FileName,omitempty"`
+	Hash          string `json:"Hash,omitempty"`
+	MimeType      string `json:"MimeType,omitempty"`
+	FirstObject   string `json:"first_object,omitempty"`
+	Size          int    `json:"Size,omitempty"`
+	CreateTime    int    `json:"CreateTime,omitempty"`
+	ModifyTime    int    `json:"ModifyTime,omitempty"`
+	StorageClass  string `json:"StorageClass,omitempty"`
+	RestoreStatus string `json:"RestoreStatus,omitempty"`
 }
 
 //FileListResponse 用 PrefixFileList 接口返回的 list 数据。
