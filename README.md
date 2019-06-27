@@ -29,6 +29,9 @@
 [查看文件信息](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.HeadFile)  
 [下载文件](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.DownloadFile)  
 [比对本地与远程文件的 Etag](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.CompareFileEtag)  
+[Put 带回调上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutFileWithPolicy)
+[同步分片上传-带回调](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.MPutWithPolicy)，
+[异步分片上传-带回调](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.AsyncMPutWithPolicy)  
 
 ### Bucket 操作相关功能
 [创建 bucket](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.CreateBucket)  
