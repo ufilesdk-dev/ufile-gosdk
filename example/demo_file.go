@@ -10,9 +10,12 @@ import (
 
 const (
 	putUpload = iota
+	putUpload_withPolicy
 	postUpload
 	mput
+	mput_withPolicy
 	asyncmput
+	asyncmput_withPolicy
 )
 
 func main() {
@@ -35,6 +38,7 @@ func main() {
 	var fileKey string
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeSmallFilePath, fileKey, putUpload, req)
+
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeSmallFilePath, fileKey, postUpload, req)
 
@@ -42,6 +46,7 @@ func main() {
 	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, mput, req)
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, asyncmput, req)
+
 }
 
 func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.UFileRequest) {
@@ -52,16 +57,31 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 		log.Println("正在使用PUT接口上传文件...")
 		err = req.PutFile(filePath, keyName, "")
 		break
+	case putUpload_withPolicy:
+		log.Println("正在使用PUT接口上传文件...")
+		err = req.PutFileWithPolicy(filePath, keyName, "", "{\"callbackUrl\":\"\", \"callbackBody\":\"\"}")
+		break
 	case postUpload:
 		log.Println("正在使用 POST 接口上传文件...")
 		err = req.PostFile(filePath, keyName, "")
+		break;
 	case mput:
 		log.Println("正在使用同步分片上传接口上传文件...")
 		err = req.MPut(filePath, keyName, "")
+                break;
+	case mput_withPolicy:
+		log.Println("正在使用Mput+policy接口上传文件...")
+		err = req.MPutWithPolicy(filePath, keyName, "", "{\"callbackUrl\" : \"http://inner.umedia.ucloud.com.cn/CreateUmediaTask\",\"callbackBody\" : \"url=http://demo.ufile.ucloud.cn/test.mp4& patten_name=mypolicy\"}")
+                break;
 	case asyncmput:
 		log.Println("正在使用异步分片上传接口上传文件...")
 		err = req.AsyncMPut(filePath, keyName, "")
+                break;
+	case asyncmput_withPolicy:
+		log.Println("正在使用异步分片+policy上传接口上传文件...")
+		err = req.AsyncMPutWithPolicy(filePath, keyName, "", "{\"callbackUrl\" : \"http://inner.umedia.ucloud.com.cn/CreateUmediaTask\",\"callbackBody\" : \"url=http://demo.ufile.ucloud.cn/test.mp4& patten_name=mypolicy\"}")
 	}
+
 	if err != nil {
 		log.Println("文件上传失败!!，错误信息为：", err.Error())
 		//如果 err 给出的提示信息不够，你可 dump 整个 response 出来查看 http 的返回。
@@ -102,4 +122,5 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 		return
 	}
 	log.Println("删除文件成功")
+
 }
