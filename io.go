@@ -6,8 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"sync"
+	"fmt"
+	"crypto/md5"
 )
 
 // IOPut 流式 put 上传接口，你必须确保你的 reader 接口每次调用是递进式的调用，也就是像文件那样的读取方式。
@@ -19,16 +20,11 @@ func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err er
 		return
 	}
 
-	switch reader.(type) {
-	case *bytes.Buffer, *bytes.Reader, *strings.Reader:
-		break
-	default:
-		b, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return err
-		}
-		reader = bytes.NewReader(b)
+	b, err := ioutil.ReadAll(reader)
+	if err != nil {
+	    return err
 	}
+	reader = bytes.NewReader(b)
 
 	reqURL := u.genFileURL(keyName)
 	req, err := http.NewRequest("PUT", reqURL, reader)
@@ -37,6 +33,11 @@ func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err er
 	}
 
 	req.Header.Add("Content-Type", mimeType)
+
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(b))
+		req.Header.Add("Content-MD5", md5Str)
+	}
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)
