@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 	"log"
 )
@@ -8,9 +9,9 @@ import (
 const (
 	uploadFile    = "./FakeBigFile.txt"
 	configFile    = "config.json"
-	remoteStFileKey = "/test_standard.txt"
-	remoteIaFileKey = "/test_ia.txt"
-	remoteArFileKey = "/test_archive.txt"
+	remoteStFileKey = "/test_standard1.txt"
+	remoteIaFileKey = "/test_ia2.txt"
+	remoteArFileKey = "/test_archive3.txt"
 )
 
 func main() {
@@ -20,16 +21,16 @@ func main() {
 		panic(err.Error())
 	}
 
-	header := make(map[string]string)
+	header := make(http.Header)
 
 	//1、上传标准存储类型文件
-	header["X-Ufile-Storage-Class"] = ufsdk.STORAGE_CLASS_STANDARD
+	header.Add("X-Ufile-Storage-Class", ufsdk.STORAGE_CLASS_STANDARD)
 	req, err := ufsdk.NewFileRequestWithHeader(config, header, nil)
 	if err != nil {
 		panic(err.Error())
 	}
 	log.Println("正在上传标准存储类型文件。。。。")
-	err = req.AsyncMPut(uploadFile, remoteStFileKey, "")
+	err = req.PostFile(uploadFile, remoteStFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return
@@ -37,7 +38,7 @@ func main() {
 	log.Println("文件上传成功。")
 
 	//2、上传低频存储类型文件
-	header["X-Ufile-Storage-Class"] = ufsdk.STORAGE_CLASS_IA
+	header.Set("X-Ufile-Storage-Class", ufsdk.STORAGE_CLASS_IA)
 	req, err = ufsdk.NewFileRequestWithHeader(config, header, nil)
 	if err != nil {
 		panic(err.Error())
@@ -51,7 +52,7 @@ func main() {
 	log.Println("文件上传成功。")
 
 	//3、上传归档存储类型文件
-	header["X-Ufile-Storage-Class"] = ufsdk.STORAGE_CLASS_ARCHIVE
+	header.Set("X-Ufile-Storage-Class", ufsdk.STORAGE_CLASS_ARCHIVE)
 	req, err = ufsdk.NewFileRequestWithHeader(config, header, nil)
 	if err != nil {
 		panic(err.Error())

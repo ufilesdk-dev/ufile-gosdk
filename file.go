@@ -82,13 +82,15 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	defer file.Close()
 
 	h := make(http.Header)
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			h.Add(k, v[i])
+		}
+	}
 	if mimeType == "" {
 		mimeType = getMimeType(file)
 	}
 	h.Add("Content-Type", mimeType)
-	for k, v := range u.RequestHeader {
-		h.Add(k, v)
-	}
 
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
 
@@ -107,7 +109,11 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundry)
 	contentLength := body.Len()
 	req.Header.Add("Content-Length", strconv.Itoa(contentLength))
-
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
+	}
 	return u.request(req)
 }
 
@@ -138,7 +144,9 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 	}
 	req.Header.Add("Content-Type", mimeType)
 	for k, v := range u.RequestHeader {
-		req.Header.Add(k, v)
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
 	}
 
 	if u.verifyUploadMD5 {

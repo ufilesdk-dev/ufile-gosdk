@@ -194,8 +194,10 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 	//	}
 	req.Header.Add("Content-Type", mimeType)
 	for k, v := range u.RequestHeader {
-		req.Header.Add(k, v)
-    }
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
+	}
 
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)

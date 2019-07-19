@@ -28,7 +28,7 @@ type UFileRequest struct {
 	Client             *http.Client
 	Context            context.Context
 	baseURL            *url.URL
-	RequestHeader      map[string]string
+	RequestHeader      http.Header
 
 	LastResponseStatus int
 	LastResponseHeader http.Header
@@ -69,7 +69,7 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 //config 参数里面包含了公私钥，以及其他必填的参数。详情见 config 相关文档。
 //header 自定义http请求头
 //client 这里你可以传空，会使用默认的 http.Client。如果你需要设置超时以及一些其他相关的网络配置选项请传入一个自定义的 client。
-func NewFileRequestWithHeader(config *Config, header map[string]string, client *http.Client) (*UFileRequest, error) {
+func NewFileRequestWithHeader(config *Config, header http.Header, client *http.Client) (*UFileRequest, error) {
 	req, err := NewFileRequest(config, client)
 	if err != nil{
 		return nil, err
