@@ -86,6 +86,10 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 		mimeType = getMimeType(file)
 	}
 	h.Add("Content-Type", mimeType)
+	for k, v := range u.RequestHeader {
+		h.Add(k, v)
+	}
+
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
 
 	boundry := makeBoundry()
@@ -133,6 +137,9 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 		mimeType = getMimeType(file)
 	}
 	req.Header.Add("Content-Type", mimeType)
+	for k, v := range u.RequestHeader {
+		req.Header.Add(k, v)
+	}
 
 	if u.verifyUploadMD5 {
 		md5Str := fmt.Sprintf("%x", md5.Sum(b))
@@ -294,10 +301,6 @@ func (u *UFileRequest) genFileURL(keyName string) string {
 
 //Restore 用于解冻冷存类型的文件
 func (u *UFileRequest) Restore(keyName string) (err error) {
-	err = judgeStorageClass(u.StorageClass)
-	if err != nil{
-		return err
-	}
 	reqURL := u.genFileURL(keyName) + "?restore"
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
@@ -311,19 +314,9 @@ func (u *UFileRequest) Restore(keyName string) (err error) {
 //ClassSwitch 存储类型转换接口
 //keyName 文件名称
 //storageClass 所要转换的新文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
-func (u *UFileRequest) ClassSwitch(keyName string, storageClass int) (err error) {
+func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err error) {
 	query := &url.Values{}
-	err = judgeStorageClass(storageClass)
-	if err != nil{
-		return err
-	}
-	if storageClass == STORAGE_CLASS_STANDARD {
-		query.Add("storageClass", "STANDARD")
-	} else if storageClass == STORAGE_CLASS_IA {
-		query.Add("storageClass", "IA")
-	} else if storageClass == STORAGE_CLASS_ARCHIVE {
-		query.Add("storageClass", "ARCHIVE")
-	}
+	query.Add("storageClass", storageClass)
 	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {

@@ -20,8 +20,11 @@ func main() {
 		panic(err.Error())
 	}
 
+	header := make(map[string]string)
+
 	//1、上传标准存储类型文件
-	req, err := ufsdk.NewArchiveFileRequest(config, ufsdk.STORAGE_CLASS_STANDARD, nil)
+	header["X-Ufile-Storage-Class"] = ufsdk.STORAGE_CLASS_STANDARD
+	req, err := ufsdk.NewFileRequestWithHeader(config, header, nil)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -34,7 +37,8 @@ func main() {
 	log.Println("文件上传成功。")
 
 	//2、上传低频存储类型文件
-	req, err = ufsdk.NewArchiveFileRequest(config, ufsdk.STORAGE_CLASS_IA, nil)
+	header["X-Ufile-Storage-Class"] = ufsdk.STORAGE_CLASS_IA
+	req, err = ufsdk.NewFileRequestWithHeader(config, header, nil)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -47,7 +51,8 @@ func main() {
 	log.Println("文件上传成功。")
 
 	//3、上传归档存储类型文件
-	req, err = ufsdk.NewArchiveFileRequest(config, ufsdk.STORAGE_CLASS_ARCHIVE, nil)
+	header["X-Ufile-Storage-Class"] = ufsdk.STORAGE_CLASS_ARCHIVE
+	req, err = ufsdk.NewFileRequestWithHeader(config, header, nil)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -60,7 +65,7 @@ func main() {
 	log.Println("文件上传成功。")
 
 	//4、解冻归档存储类型文件
-	req, err = ufsdk.NewArchiveFileRequest(config, ufsdk.STORAGE_CLASS_ARCHIVE, nil)
+	req, err = ufsdk.NewFileRequest(config, nil)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -73,7 +78,7 @@ func main() {
 	log.Println("文件解冻成功。")
 
 	//5、转换文件存储类型
-	req, err = ufsdk.NewArchiveFileRequest(config, ufsdk.STORAGE_CLASS_ARCHIVE, nil)
+	req, err = ufsdk.NewFileRequest(config, nil)
 	if err != nil {
 		panic(err.Error())
 	}
