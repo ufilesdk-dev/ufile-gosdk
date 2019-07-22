@@ -37,12 +37,6 @@ type UFileRequest struct {
 	lastResponse       *http.Response
 }
 
-const (
-	STORAGE_CLASS_STANDARD = "STANDARD"
-	STORAGE_CLASS_IA = "IA"
-	STORAGE_CLASS_ARCHIVE = "ARCHIVE"
-)
-
 //NewFileRequest 创建一个用于管理文件的 request，管理文件的 url 与 管理 bucket 接口不一样，
 //请将 bucket 和文件管理所需要的分开，NewUBucketRequest 是用来管理 bucket 的。
 //Request 创建后的 instance 不是线程安全的，如果你需要做并发的操作，请创建多个 UFileRequest。

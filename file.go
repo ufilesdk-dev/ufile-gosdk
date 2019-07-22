@@ -321,7 +321,7 @@ func (u *UFileRequest) Restore(keyName string) (err error) {
 
 //ClassSwitch 存储类型转换接口
 //keyName 文件名称
-//storageClass 所要转换的新文件存储类型，分别为标准:STANDARD、低频:IA、冷存:ARCHIVE
+//storageClass 所要转换的新文件存储类型，目前支持的类型分别是标准:"STANDARD"、低频:"IA"、冷存:"ARCHIVE"
 func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err error) {
 	query := &url.Values{}
 	query.Add("storageClass", storageClass)
