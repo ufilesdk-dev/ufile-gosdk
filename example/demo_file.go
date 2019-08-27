@@ -38,6 +38,7 @@ func main() {
 	srcBucketName = config.BucketName
 
 	var fileKey string
+
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeSmallFilePath, fileKey, putUpload, req)
 	fileKey = helper.GenerateUniqKey()
@@ -45,6 +46,7 @@ func main() {
 
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, mput, req)
+
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, asyncmput, req)
 
@@ -94,7 +96,7 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	}
 
 	log.Println("正在重命名文件...")
-	newKeyName := "test_newKey"
+	newKeyName := "test_newKey_" + keyName
 	err = req.Rename(keyName, newKeyName, "")
 	if err != nil {
 		log.Println("文件重命名失败，错误信息为：", err.Error())
@@ -103,7 +105,7 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	}
 
 	log.Println("正在拷贝文件...")
-	dstKeyName := "test_dstKey"
+	dstKeyName := "test_dstKey_" + keyName
 	err = req.Copy(dstKeyName, srcBucketName, newKeyName)
 	if err != nil {
 		log.Println("文件拷贝失败，错误信息为：", err.Error())
@@ -126,4 +128,5 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 		return
 	}
 	log.Println("删除文件成功")
+
 }
