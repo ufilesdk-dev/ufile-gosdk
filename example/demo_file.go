@@ -38,7 +38,6 @@ func main() {
 	srcBucketName = config.BucketName
 
 	var fileKey string
-
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeSmallFilePath, fileKey, putUpload, req)
 	fileKey = helper.GenerateUniqKey()
@@ -46,10 +45,8 @@ func main() {
 
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, mput, req)
-
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, asyncmput, req)
-
 }
 
 func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.UFileRequest) {
