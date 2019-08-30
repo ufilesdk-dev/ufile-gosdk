@@ -2,6 +2,7 @@ package ufsdk
 
 import (
 	"bytes"
+	"encoding/base64"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
@@ -161,6 +162,49 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 
 	return u.request(req)
 }
+
+//PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
+//mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
+//小于 100M 的文件推荐使用本接口上传。
+//支持带上传回调的参数, policy_json 为json 格式字符串
+func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, policy_json string) error {
+	reqURL := u.genFileURL(keyName)
+	file, err := openFile(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	b, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+	req.Header.Add("Content-Type", mimeType)
+
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(b))
+		req.Header.Add("Content-MD5", md5Str)
+	}
+
+	policy := base64.URLEncoding.EncodeToString([]byte(policy_json))
+	authorization := u.Auth.AuthorizationPolicy("PUT", u.BucketName, keyName, policy, req.Header)
+	req.Header.Add("authorization", authorization)
+	fileSize := getFileSize(file)
+	req.Header.Add("Content-Length", strconv.FormatInt(fileSize, 10))
+
+	return u.request(req)
+}
+
 
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
