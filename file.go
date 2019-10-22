@@ -2,6 +2,7 @@ package ufsdk
 
 import (
 	"bytes"
+	"encoding/base64"
 	"crypto/md5"
 	"encoding/json"
 	"errors"
@@ -22,14 +23,16 @@ const (
 
 //FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
 type FileDataSet struct {
-	BucketName  string `json:"BucketName,omitempty"`
-	FileName    string `json:"FileName,omitempty"`
-	Hash        string `json:"Hash,omitempty"`
-	MimeType    string `json:"MimeType,omitempty"`
-	FirstObject string `json:"first_object,omitempty"`
-	Size        int    `json:"Size,omitempty"`
-	CreateTime  int    `json:"CreateTime,omitempty"`
-	ModifyTime  int    `json:"ModifyTime,omitempty"`
+	BucketName    string `json:"BucketName,omitempty"`
+	FileName      string `json:"FileName,omitempty"`
+	Hash          string `json:"Hash,omitempty"`
+	MimeType      string `json:"MimeType,omitempty"`
+	FirstObject   string `json:"first_object,omitempty"`
+	Size          int    `json:"Size,omitempty"`
+	CreateTime    int    `json:"CreateTime,omitempty"`
+	ModifyTime    int    `json:"ModifyTime,omitempty"`
+	StorageClass  string `json:"StorageClass,omitempty"`
+	RestoreStatus string `json:"RestoreStatus,omitempty"`
 }
 
 //FileListResponse 用 PrefixFileList 接口返回的 list 数据。
@@ -82,10 +85,16 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	defer file.Close()
 
 	h := make(http.Header)
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			h.Add(k, v[i])
+		}
+	}
 	if mimeType == "" {
 		mimeType = getMimeType(file)
 	}
 	h.Add("Content-Type", mimeType)
+
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
 
 	boundry := makeBoundry()
@@ -103,7 +112,11 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundry)
 	contentLength := body.Len()
 	req.Header.Add("Content-Length", strconv.Itoa(contentLength))
-
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
+	}
 	return u.request(req)
 }
 
@@ -133,6 +146,11 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 		mimeType = getMimeType(file)
 	}
 	req.Header.Add("Content-Type", mimeType)
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
+	}
 
 	if u.verifyUploadMD5 {
 		md5Str := fmt.Sprintf("%x", md5.Sum(b))
@@ -146,6 +164,49 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 
 	return u.request(req)
 }
+
+//PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
+//mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
+//小于 100M 的文件推荐使用本接口上传。
+//支持带上传回调的参数, policy_json 为json 格式字符串
+func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, policy_json string) error {
+	reqURL := u.genFileURL(keyName)
+	file, err := openFile(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	b, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+	req.Header.Add("Content-Type", mimeType)
+
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(b))
+		req.Header.Add("Content-MD5", md5Str)
+	}
+
+	policy := base64.URLEncoding.EncodeToString([]byte(policy_json))
+	authorization := u.Auth.AuthorizationPolicy("PUT", u.BucketName, keyName, policy, req.Header)
+	req.Header.Add("authorization", authorization)
+	fileSize := getFileSize(file)
+	req.Header.Add("Content-Length", strconv.FormatInt(fileSize, 10))
+
+	return u.request(req)
+}
+
 
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
@@ -368,4 +429,71 @@ func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool
 
 func (u *UFileRequest) genFileURL(keyName string) string {
 	return u.baseURL.String() + keyName
+}
+
+//Restore 用于解冻冷存类型的文件
+func (u *UFileRequest) Restore(keyName string) (err error) {
+	reqURL := u.genFileURL(keyName) + "?restore"
+	req, err := http.NewRequest("PUT", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
+}
+
+//ClassSwitch 存储类型转换接口
+//keyName 文件名称
+//storageClass 所要转换的新文件存储类型，目前支持的类型分别是标准:"STANDARD"、低频:"IA"、冷存:"ARCHIVE"
+func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err error) {
+	query := &url.Values{}
+	query.Add("storageClass", storageClass)
+	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
+	req, err := http.NewRequest("PUT", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
+}
+
+//Rename 重命名指定文件
+//keyName 需要被重命名的源文件
+//newKeyName 修改后的新文件名
+//force 如果已存在同名文件，值为"true"则覆盖，否则会操作失败
+func (u *UFileRequest) Rename(keyName, newKeyName, force string) (err error) {
+
+	query := url.Values{}
+	query.Add("newFileName", newKeyName)
+	query.Add("force", force)
+	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
+
+	req, err := http.NewRequest("PUT", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
+}
+
+//Copy 从同组织下的源Bucket中拷贝指定文件到目的Bucket中，并以新文件名命名
+//dstkeyName 拷贝到目的Bucket后的新文件名
+//srcBucketName 待拷贝文件所在的源Bucket名称
+//srcKeyName 待拷贝文件名称
+func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err error) {
+
+	reqURL := u.genFileURL(dstkeyName)
+
+	req, err := http.NewRequest("PUT", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+
+	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
 }

@@ -10,10 +10,15 @@ import (
 
 const (
 	putUpload = iota
+	putUpload_withPolicy
 	postUpload
 	mput
+	mput_withPolicy
 	asyncmput
+	asyncmput_withPolicy
 )
+
+var srcBucketName string
 
 func main() {
 	log.SetFlags(log.Lshortfile)
@@ -32,9 +37,13 @@ func main() {
 		panic(err.Error())
 	}
 
+	//可以替换为自定义源bucketName
+	srcBucketName = config.BucketName
+
 	var fileKey string
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeSmallFilePath, fileKey, putUpload, req)
+
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeSmallFilePath, fileKey, postUpload, req)
 
@@ -42,6 +51,7 @@ func main() {
 	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, mput, req)
 	fileKey = helper.GenerateUniqKey()
 	scheduleUploadhelper(helper.FakeBigFilePath, fileKey, asyncmput, req)
+
 }
 
 func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.UFileRequest) {
@@ -52,16 +62,31 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 		log.Println("正在使用PUT接口上传文件...")
 		err = req.PutFile(filePath, keyName, "")
 		break
+	case putUpload_withPolicy:
+		log.Println("正在使用PUT接口上传文件...")
+		err = req.PutFileWithPolicy(filePath, keyName, "", "{\"callbackUrl\":\"\", \"callbackBody\":\"\"}")
+		break
 	case postUpload:
 		log.Println("正在使用 POST 接口上传文件...")
 		err = req.PostFile(filePath, keyName, "")
+		break;
 	case mput:
 		log.Println("正在使用同步分片上传接口上传文件...")
 		err = req.MPut(filePath, keyName, "")
+                break;
+	case mput_withPolicy:
+		log.Println("正在使用Mput+policy接口上传文件...")
+		err = req.MPutWithPolicy(filePath, keyName, "", "{\"callbackUrl\" : \"http://inner.umedia.ucloud.com.cn/CreateUmediaTask\",\"callbackBody\" : \"url=http://demo.ufile.ucloud.cn/test.mp4& patten_name=mypolicy\"}")
+                break;
 	case asyncmput:
 		log.Println("正在使用异步分片上传接口上传文件...")
 		err = req.AsyncMPut(filePath, keyName, "")
+                break;
+	case asyncmput_withPolicy:
+		log.Println("正在使用异步分片+policy上传接口上传文件...")
+		err = req.AsyncMPutWithPolicy(filePath, keyName, "", "{\"callbackUrl\" : \"http://inner.umedia.ucloud.com.cn/CreateUmediaTask\",\"callbackBody\" : \"url=http://demo.ufile.ucloud.cn/test.mp4& patten_name=mypolicy\"}")
 	}
+
 	if err != nil {
 		log.Println("文件上传失败!!，错误信息为：", err.Error())
 		//如果 err 给出的提示信息不够，你可 dump 整个 response 出来查看 http 的返回。
@@ -84,11 +109,29 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	if err != nil {
 		log.Println("文件秒传失败，错误信息为：", err.Error())
 	} else {
-		log.Printf("秒传文件返回的信息是：%s\n", req.LastResponseBody)
+		log.Printf("操作成功，秒传文件返回的信息是：%s\n", req.LastResponseBody)
+	}
+
+	log.Println("正在重命名文件...")
+	newKeyName := "test_newKey_" + keyName
+	err = req.Rename(keyName, newKeyName, "")
+	if err != nil {
+		log.Println("文件重命名失败，错误信息为：", err.Error())
+	} else {
+		log.Printf("操作成功，重命名文件返回的信息是：%s\n", req.LastResponseBody)
+	}
+
+	log.Println("正在拷贝文件...")
+	dstKeyName := "test_dstKey_" + keyName
+	err = req.Copy(dstKeyName, srcBucketName, newKeyName)
+	if err != nil {
+		log.Println("文件拷贝失败，错误信息为：", err.Error())
+	} else {
+		log.Printf("操作成功，拷贝文件返回的信息是：%s\n", req.LastResponseBody)
 	}
 
 	log.Println("正在获取文件列表...")
-	list, err := req.PrefixFileList(keyName, "", 10)
+	list, err := req.PrefixFileList(newKeyName, "", 10)
 	if err != nil {
 		log.Println("获取文件列表失败，错误信息为：", err.Error())
 		return
@@ -96,10 +139,11 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	log.Printf("获取文件列表返回的信息是：\n%s\n", list)
 
 	log.Println("正在删除刚刚上传的文件")
-	err = req.DeleteFile(keyName)
+	err = req.DeleteFile(newKeyName)
 	if err != nil {
 		log.Println("删除文件失败，错误信息为：", err.Error())
 		return
 	}
 	log.Println("删除文件成功")
+
 }
