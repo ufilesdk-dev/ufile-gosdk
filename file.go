@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
-	"encoding/base64"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -207,7 +207,6 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
-
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
@@ -338,7 +337,7 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 	return nil
 }
 
-//PutWithCryptoFile 把加密后的文件直接放到 HTTP Body 里面上传
+//PutWithCryptoFile 文件客户端加密上传
 //进行客户端加密上传时，需要用户提供加解密密钥，详情见配置文件相关文档
 //本SDK支持加密算法AES-GCM-NoPadding，如有其它加密算法需求，需自行实现加解密方法
 //注意在客户端加密的条件下，ufile暂不支持文件分片上传下载操作。
@@ -389,6 +388,7 @@ func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) er
 	return u.request(req)
 }
 
+//DownloadWithDecryptFile 文件客户端加密下载
 //注意在客户端加密的条件下，ufile暂不支持文件分片上传下载操作,因此客户端加密后文件下载请使用此接口
 //进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
 func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string) error {
@@ -491,7 +491,7 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	if err != nil {
 		return err
 	}
-	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+	req.Header.Add("X-Ufile-Copy-Source", "/"+srcBucketName+"/"+srcKeyName)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
