@@ -27,6 +27,7 @@ type Config struct {
 	FileHost        string `json:"file_host"`
 	BucketHost      string `json:"bucket_host"`
 	VerifyUploadMD5 bool   `json:"verfiy_upload_md5"`
+	CryptoKey       string `json:"crypto_key"`
 }
 
 //LoadConfig 从配置文件加载一个配置。

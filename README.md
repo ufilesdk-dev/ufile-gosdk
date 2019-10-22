@@ -29,6 +29,7 @@
 [查看文件信息](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.HeadFile)  
 [下载文件](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.DownloadFile)  
 [比对本地与远程文件的 Etag](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.CompareFileEtag)  
+[文件客户端加密上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutWithEncryptFile), [文件客户端解密下载](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.ownloadWithDecryptFile)
 
 ### Bucket 操作相关功能
 [创建 bucket](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.CreateBucket)  
