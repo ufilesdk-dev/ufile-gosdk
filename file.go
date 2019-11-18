@@ -64,7 +64,7 @@ func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
 	if err != nil {
 		return err
 	}
-	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
+	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header, "")
 	req.Header.Add("authorization", authorization)
 
 	return u.request(req)
@@ -93,7 +93,7 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	}
 	h.Add("Content-Type", mimeType)
 
-	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
+	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h, "")
 
 	boundry := makeBoundry()
 	body := makeFormBody(authorization, boundry, keyName, mimeType, u.verifyUploadMD5, file)
@@ -155,7 +155,7 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 		req.Header.Add("Content-MD5", md5Str)
 	}
 
-	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header, "")
 	req.Header.Add("authorization", authorization)
 	fileSize := getFileSize(file)
 	req.Header.Add("Content-Length", strconv.FormatInt(fileSize, 10))
@@ -214,7 +214,7 @@ func (u *UFileRequest) DeleteFile(keyName string) error {
 	if err != nil {
 		return err
 	}
-	authorization := u.Auth.Authorization("DELETE", u.BucketName, keyName, req.Header)
+	authorization := u.Auth.Authorization("DELETE", u.BucketName, keyName, req.Header, "")
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }
@@ -227,7 +227,7 @@ func (u *UFileRequest) HeadFile(keyName string) error {
 	if err != nil {
 		return err
 	}
-	authorization := u.Auth.Authorization("HEAD", u.BucketName, keyName, req.Header)
+	authorization := u.Auth.Authorization("HEAD", u.BucketName, keyName, req.Header, "")
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }
@@ -251,7 +251,7 @@ func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) (list Fi
 		return
 	}
 
-	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
+	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header, "")
 	req.Header.Add("authorization", authorization)
 
 	err = u.request(req)
@@ -358,7 +358,7 @@ func (u *UFileRequest) Restore(keyName string) (err error) {
 	if err != nil {
 		return err
 	}
-	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header, "restore")
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }
@@ -374,7 +374,8 @@ func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err err
 	if err != nil {
 		return err
 	}
-	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	s := "storageClass:" + storageClass
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header, s)
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }
@@ -394,7 +395,10 @@ func (u *UFileRequest) Rename(keyName, newKeyName, force string) (err error) {
 	if err != nil {
 		return err
 	}
-	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	s := "newFileName:" + newKeyName + "\n"
+	s += "force:" + force
+
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header, s)
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }
@@ -413,7 +417,7 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	}
 	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
 
-	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
+	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header, "")
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }

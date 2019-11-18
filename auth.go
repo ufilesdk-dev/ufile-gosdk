@@ -31,7 +31,8 @@ func NewAuth(publicKey, privateKey string) Auth {
 //key 是传到 ufile 所使用的文件名，bucekt 是文件上传后存放的 bucket。
 //method 就是你当前这个 HTTP 请求的 Method。
 //header 就是你当前这个 HTTP 的 header。
-func (A Auth) Authorization(method, bucket, key string, header http.Header) string {
+//urlParam 就是你当前这个 HTTP 的 url里的各个query。
+func (A Auth) Authorization(method, bucket, key string, header http.Header, urlParam string) string {
 	var sigData string
 	method = strings.ToUpper(method)
 
@@ -43,6 +44,9 @@ func (A Auth) Authorization(method, bucket, key string, header http.Header) stri
 	sigData += A.CanonicalizedUcloudHeaders(header)
 	resource := "/" + bucket + "/" + key
 	sigData += resource
+	if urlParam != "" {
+		sigData += "\n" + urlParam
+	}
 
 	signature := A.signature(sigData)
 

@@ -173,7 +173,7 @@ func (u *UFileRequest) AbortMultipartUpload(state *MultipartState) error {
 	if err != nil {
 		return err
 	}
-	authorization := u.Auth.Authorization("DELETE", u.BucketName, state.keyName, req.Header)
+	authorization := u.Auth.Authorization("DELETE", u.BucketName, state.keyName, req.Header, "")
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }
@@ -199,7 +199,7 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 		}
 	}
 
-	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
+	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header, "")
 	req.Header.Add("authorization", authorization)
 
 	err = u.request(req)
@@ -237,7 +237,7 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	}
 
 	req.Header.Add("Content-Type", state.mimeType)
-	authorization := u.Auth.Authorization("PUT", u.BucketName, state.keyName, req.Header)
+	authorization := u.Auth.Authorization("PUT", u.BucketName, state.keyName, req.Header, "")
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("Content-Length", strconv.Itoa(buf.Len()))
 
@@ -277,7 +277,7 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 		return err
 	}
 	req.Header.Add("Content-Type", state.mimeType)
-	authorization := u.Auth.Authorization("POST", u.BucketName, state.keyName, req.Header)
+	authorization := u.Auth.Authorization("POST", u.BucketName, state.keyName, req.Header, "")
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("Content-Length", strconv.Itoa(len(etagsStr)))
 

@@ -38,7 +38,7 @@ func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err er
 
 	req.Header.Add("Content-Type", mimeType)
 
-	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header, "")
 	req.Header.Add("authorization", authorization)
 
 	return u.request(req)
