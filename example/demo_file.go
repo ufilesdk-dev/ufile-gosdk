@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 	"github.com/ufilesdk-dev/ufile-gosdk/example/helper"
