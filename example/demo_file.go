@@ -95,7 +95,7 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	}
 	log.Println("文件上传成功!!")
 	log.Println("公有空间文件下载 URL 是：", req.GetPublicURL(keyName))
-	log.Println("私有空间文件下载 URL 是：", req.GetPrivateURL(keyName, 24*60*60)) //过期时间为一天
+	log.Println("私有空间文件下载 URL 是：", req.GetPrivateURL(keyName, 24*60*60 * time.Second)) //过期时间为一天
 
 	log.Println("正在获取文件的基本信息。")
 	err = req.HeadFile(keyName)
