@@ -40,7 +40,6 @@ func (A Auth) Authorization(method, bucket, key string, header http.Header) stri
 	date := header.Get("Date")
 
 	sigData = method + "\n" + md5 + "\n" + contentType + "\n" + date + "\n"
-	sigData += A.CanonicalizedUcloudHeaders(header)
 	resource := "/" + bucket + "/" + key
 	sigData += resource
 
