@@ -293,7 +293,7 @@ func (u *UFileRequest) Download(reqURL string) error {
 	return u.request(req)
 }
 
-//Download 文件下载接口, 对下载大文件比较友好
+//Download 文件下载接口, 对下载大文件比较友好；支持流式下载
 func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
 	req, err := http.NewRequest("GET", reqURL, nil)
