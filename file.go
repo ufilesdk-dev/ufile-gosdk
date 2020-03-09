@@ -293,47 +293,22 @@ func (u *UFileRequest) Download(reqURL string) error {
 	return u.request(req)
 }
 
-//Download 文件下载接口，下载前会先获取文件大小，如果小于 4M 直接下载。大于 4M 每次会按 4M 的分片来下载。
+//Download 文件下载接口, 对下载大文件比较友好
 func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
-	err := u.HeadFile(keyName)
-	if err != nil {
-		return err
-	}
-	size := u.LastResponseHeader.Get("Content-Length")
-	fileSize, err := strconv.ParseInt(size, 10, 0)
-	if err != nil || fileSize <= 0 {
-		return fmt.Errorf("Parse content-lengt returned error")
-	}
-
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return err
 	}
 
-	if fileSize < fourMegabyte {
-		err = u.request(req)
-		if err != nil {
-			return err
-		}
-		writer.Write(u.LastResponseBody)
-	} else {
-		var i int64
-		for i = 0; i < fileSize; i += fourMegabyte { // 一次下载 4 M
-			start := i
-			end := i + fourMegabyte - 1 //数组是从 0 开始的。 &_& .....
-			if end > fileSize {
-				end = fileSize
-			}
-			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
-			err = u.request(req)
-			if err != nil {
-				return err
-			}
-			writer.Write(u.LastResponseBody)
-		}
+	resp, err := u.requestWithResp(req)
+	defer resp.Body.Close()
+	if err != nil {
+		return err
 	}
-	return nil
+
+	_, err = io.Copy(writer, resp.Body)
+	return err
 }
 
 //CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致
