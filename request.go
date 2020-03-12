@@ -164,7 +164,7 @@ func (u *UFileRequest) request(req *http.Request) error {
 }
 
 func (u *UFileRequest) requestWithResp(req *http.Request) (resp *http.Response, err error) {
-	req.Header.Set("User-Agent", "UFile-GoSDK-Client/2.0")
+	req.Header.Set("User-Agent", "UFileGoSDK/2.01")
 
 	resp, err = u.Client.Do(req.WithContext(u.Context))
 	// If we got an error, and the context has been canceled,
