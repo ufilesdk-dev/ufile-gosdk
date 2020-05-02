@@ -310,6 +310,8 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 
 	u.LastResponseStatus = resp.StatusCode
 	u.LastResponseHeader = resp.Header
+	u.LastResponseBody = nil	//流式下载无body存储在u里
+	u.lastResponse = resp
 	if !VerifyHTTPCode(resp.StatusCode) {
 		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
 			resp.StatusCode, http.StatusText(resp.StatusCode))
@@ -319,7 +321,6 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 	if err != nil || fileSize < 0 {
 		return fmt.Errorf("Parse content-lengt returned error")
 	}
-
 	_, err = io.Copy(writer, resp.Body)
 	return err
 }
