@@ -295,6 +295,17 @@ func (u *UFileRequest) Download(reqURL string) error {
 
 //Download 文件下载接口, 对下载大文件比较友好；支持流式下载
 func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
+	err := u.HeadFile(keyName)
+	if err != nil {
+		return err
+	}
+	size := u.LastResponseHeader.Get("Content-Length")
+	fileSize, err := strconv.ParseInt(size, 10, 0)
+	if err != nil || fileSize <= 0 {
+		return fmt.Errorf("Parse content-lengt returned error")
+	}
+
+
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
