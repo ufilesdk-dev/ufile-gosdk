@@ -303,10 +303,10 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 	}
 
 	resp, err := u.requestWithResp(req)
-	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	u.LastResponseStatus = resp.StatusCode
 	u.LastResponseHeader = resp.Header
