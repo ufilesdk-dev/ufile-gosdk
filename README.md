@@ -24,6 +24,7 @@
 手动分片上传，[步骤一](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.InitiateMultipartUpload)，[步骤二](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.UploadPart)，[步骤三](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.FinishMultipartUpload)。[取消分片上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.AbortMultipartUpload)  
 [文件秒传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.UploadHit)  
 [获取文件列表](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PrefixFileList)  
+[获取目录文件列表](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.ListObjects) 
 [获取私有空间下载地址](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.GetPrivateURL)，[获取公有空间下载地址](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.GetPublicURL)。  
 [删除文件](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.DeleteFile)  
 [查看文件信息](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.HeadFile)  

@@ -139,6 +139,14 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	}
 	log.Printf("获取文件列表返回的信息是：\n%s\n", list)
 
+	log.Println("正在获取目录文件列表...")
+	listV2, err := req.ListObjects(newKeyName, "", "/", 10)
+	if err != nil {
+		log.Println("获取目录文件列表失败，错误信息为：", err.Error())
+		return
+	}
+	log.Printf("获取目录文件列表返回的信息是：\n%s\n", listV2)
+
 	log.Println("正在删除刚刚上传的文件")
 	err = req.DeleteFile(newKeyName)
 	if err != nil {
