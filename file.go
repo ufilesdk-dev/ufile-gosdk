@@ -146,7 +146,10 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
 
 	boundry := makeBoundry()
-	body := makeFormBody(authorization, boundry, keyName, mimeType, u.verifyUploadMD5, file)
+	body, err := makeFormBody(authorization, boundry, keyName, mimeType, u.verifyUploadMD5, file)
+	if err != nil {
+		return err
+	}
 	//lastline 一定要写，否则后端解析不到。
 	lastline := fmt.Sprintf("\r\n--%s--\r\n", boundry)
 	body.Write([]byte(lastline))
