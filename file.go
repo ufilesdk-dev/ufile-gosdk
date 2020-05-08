@@ -46,6 +46,14 @@ func (f FileListResponse) String() string {
 }
 
 //ListObjectsResponse 用 ListObjects 接口返回的 list 数据。
+//Name Bucket名称
+//Prefix 查询结果的前缀
+//MaxKeys 查询结果的最大数量
+//Delimiter 查询结果的目录分隔符
+//IsTruncated 返回结果是否被截断。若值为true，则表示仅返回列表的一部分，NextMarker可作为之后迭代的游标
+//NextMarker 可作为查询请求中的的Marker参数，实现迭代查询
+//Contents 文件列表
+//CommonPrefixes 以Delimiter结尾，并且有共同前缀的目录列表
 type ListObjectsResponse struct {
 	Name           string          `json:"Name,omitempty"`
 	Prefix         string          `json:"Prefix,omitempty"`
@@ -62,17 +70,27 @@ func (f ListObjectsResponse) String() string {
 }
 
 //ObjectInfo 用于 ListObjectsResponse 里面的 Contents 字段
+//Key 文件名称
+//MimeType 文件mimetype
+//LastModified 文件最后修改时间
+//CreateTime 文件创建时间
+//ETag 标识文件内容
+//Size 文件大小
+//StorageClass 文件存储类型
+//UserMeta 用户自定义元数据
 type ObjectInfo struct {
-	Key          string `json:"Key,omitempty"`
-	MimeType     string `json:"MimeType,omitempty"`
-	LastModified int    `json:"LastModified,omitempty"`
-	CreateTime   int    `json:"CreateTime,omitempty"`
-	Etag         string `json:"Etag,omitempty"`
-	Size         string `json:"Size,omitempty"`
-	StorageClass string `json:"StorageClass,omitempty"`
+	Key          string            `json:"Key,omitempty"`
+	MimeType     string            `json:"MimeType,omitempty"`
+	LastModified int               `json:"LastModified,omitempty"`
+	CreateTime   int               `json:"CreateTime,omitempty"`
+	Etag         string            `json:"Etag,omitempty"`
+	Size         string            `json:"Size,omitempty"`
+	StorageClass string            `json:"StorageClass,omitempty"`
+	UserMeta     map[string]string `json:"UserMeta,omitempty"`
 }
 
 //CommonPreInfo 用于 ListObjectsResponse 里面的 CommonPrefixes 字段
+//Prefix 以Delimiter结尾的公共前缀目录名
 type CommonPreInfo struct {
 	Prefix string `json:"Prefix,omitempty"`
 }
