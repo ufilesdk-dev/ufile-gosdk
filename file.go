@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
-	"encoding/base64"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -258,7 +258,6 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
-
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
@@ -363,7 +362,7 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 
 	u.LastResponseStatus = resp.StatusCode
 	u.LastResponseHeader = resp.Header
-	u.LastResponseBody = nil	//流式下载无body存储在u里
+	u.LastResponseBody = nil //流式下载无body存储在u里
 	u.lastResponse = resp
 	if !VerifyHTTPCode(resp.StatusCode) {
 		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
@@ -403,6 +402,18 @@ func (u *UFileRequest) Restore(keyName string) (err error) {
 	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
+}
+
+//MultiDelete 用于批量删除文件
+func (u *UFileRequest) MultiDelete() string {
+	reqURL := u.genFileURL("") + "?delete"
+	return reqURL
+}
+
+//MultiDelete 用于批量文件类型转换
+func (u *UFileRequest) MultiClassSwitch() string {
+	reqURL := u.genFileURL("") + "?classSwitch"
+	return reqURL
 }
 
 //ClassSwitch 存储类型转换接口
@@ -453,7 +464,7 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	if err != nil {
 		return err
 	}
-	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+	req.Header.Add("X-Ufile-Copy-Source", "/"+srcBucketName+"/"+srcKeyName)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
