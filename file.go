@@ -216,6 +216,53 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 	return u.request(req)
 }
 
+//PutFileWithIopString 支持上传iop, 直接指定iop字符串, 上传iop必须指定saveAs命令做持久化，否则图片处理不会生效
+func (u *UFileRequest) PutFileWithIopString(filePath, keyName, mimeType string, iopcmd string) error {
+	reqURL := u.genFileURL(keyName)
+	file, err := openFile(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	b, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	//增加iopcmd
+	if iopcmd != "" {
+		reqURL += "?" + iopcmd
+	}
+
+	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+	req.Header.Add("Content-Type", mimeType)
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
+	}
+
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(b))
+		req.Header.Add("Content-MD5", md5Str)
+	}
+
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	fileSize := getFileSize(file)
+	req.Header.Add("Content-Length", strconv.FormatInt(fileSize, 10))
+
+	return u.request(req)
+}
+
 //PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
 //mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
@@ -363,7 +410,45 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 
 	u.LastResponseStatus = resp.StatusCode
 	u.LastResponseHeader = resp.Header
-	u.LastResponseBody = nil	//流式下载无body存储在u里
+	u.LastResponseBody = nil //流式下载无body存储在u里
+	u.lastResponse = resp
+	if !VerifyHTTPCode(resp.StatusCode) {
+		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	size := u.LastResponseHeader.Get("Content-Length")
+	fileSize, err := strconv.ParseInt(size, 10, 0)
+	if err != nil || fileSize < 0 {
+		return fmt.Errorf("Parse content-lengt returned error")
+	}
+	_, err = io.Copy(writer, resp.Body)
+	return err
+}
+
+//DownloadFileWithIopString 支持下载iop，直接指定iop命令字符串
+func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName string, iopcmd string) error {
+
+	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
+
+	//增加iopcmd，因为获取到下载链接已经带了query，所以这里使用&连接
+	if iopcmd != "" {
+		reqURL += "&" + iopcmd
+	}
+
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := u.requestWithResp(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	u.LastResponseStatus = resp.StatusCode
+	u.LastResponseHeader = resp.Header
+	u.LastResponseBody = nil //流式下载无body存储在u里
 	u.lastResponse = resp
 	if !VerifyHTTPCode(resp.StatusCode) {
 		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
