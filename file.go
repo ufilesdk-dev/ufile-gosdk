@@ -368,6 +368,13 @@ func (u *UFileRequest) GetPublicURL(keyName string) string {
 	return u.genFileURL(keyName)
 }
 
+//GetPublicURLWithIopString 获取带图片处理命令的公有空间的文件下载 URL
+//keyName 表示传到 ufile 的文件名。
+//iopcmd 表示图片处理命令。
+func (u *UFileRequest) GetPublicURLWithIopString(keyName string, iopcmd string) string {
+	return u.genFileURL(keyName) + "?" + iopcmd
+}
+
 //GetPrivateURL 获取私有空间的文件下载 URL。
 //keyName 表示传到 ufile 的文件名。
 //expiresDuation 表示下载链接的过期时间，从现在算起，24 * time.Hour 表示过期时间为一天。
@@ -382,6 +389,23 @@ func (u *UFileRequest) GetPrivateURL(keyName string, expiresDuation time.Duratio
 	query.Add("Expires", expires)
 	reqURL := u.genFileURL(keyName)
 	return reqURL + "?" + query.Encode()
+}
+
+//GetPrivateURLWithIopString 获取带图片处理命令的私有空间的文件下载 URL。
+//keyName 表示传到 ufile 的文件名。
+//expiresDuation 表示下载链接的过期时间，从现在算起，24 * time.Hour 表示过期时间为一天。
+//iopcmd 表示图片处理命令。
+func (u *UFileRequest) GetPrivateURLWithIopString(keyName string, expiresDuation time.Duration, iopcmd string) string {
+	t := time.Now()
+	t = t.Add(expiresDuation)
+	expires := strconv.FormatInt(t.Unix(), 10)
+	signature, publicKey := u.Auth.AuthorizationPrivateURL("GET", u.BucketName, keyName, expires, http.Header{})
+	query := url.Values{}
+	query.Add("UCloudPublicKey", publicKey)
+	query.Add("Signature", signature)
+	query.Add("Expires", expires)
+	reqURL := u.genFileURL(keyName)
+	return reqURL + "?" + query.Encode() + "&" + iopcmd
 }
 
 //Download 把文件下载到 HTTP Body 里面，这里只能用来下载小文件，建议使用 DownloadFile 来下载大文件。
