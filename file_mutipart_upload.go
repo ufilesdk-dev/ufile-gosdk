@@ -39,6 +39,17 @@ func (m *MultipartState) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
+//ComparePartEtag compare client etag with server return etag
+func (m *MultipartState) ComparePartEtag(partNumber int, etag string) error {
+	m.mux.Lock()
+	remoteEtag := m.etags[partNumber]
+	m.mux.Unlock()
+	if remoteEtag != etag {
+		return fmt.Errorf("[ComparePartEtag] local[%s] not equal remote[%s]\n", etag, m.etags[partNumber])
+	}
+	return nil
+}
+
 type uploadChan struct {
 	etag string
 	err  error
@@ -247,14 +258,30 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		status := resp.StatusCode
+		session := resp.Header.Get("X-SessionId")
+		dec := json.NewDecoder(resp.Body)
+		ret := &RetBody{}
+		dec.Decode(ret)
+		return fmt.Errorf("Error{ Status: %d, Session: %s, RetCode: %d, ErrMsg: %s }", status, session, ret.Retcode, ret.Errmsg)
+	}
 	etag := strings.Trim(resp.Header.Get("Etag"), "\"") //为保证线程安全，这里就不保留 lastResponse
 	if etag == "" {
 		etag = strings.Trim(resp.Header.Get("ETag"), "\"") //为保证线程安全，这里就不保留 lastResponse
+	}
+	if etag == "" {
+		return fmt.Errorf("Error{ Status: %d, Session: %s, etag is empty }", resp.StatusCode, resp.Header.Get("X-SessionId"))
 	}
 	state.mux.Lock()
 	state.etags[partNumber] = etag
 	state.mux.Unlock()
 	return nil
+}
+
+type RetBody struct {
+	Retcode int    `json:"RetCode"`
+	Errmsg  string `json:"ErrMsg"`
 }
 
 //FinishMultipartUpload 完成分片上传。分片上传必须要调用的接口。

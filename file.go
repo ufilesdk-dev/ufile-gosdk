@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
-	"encoding/base64"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -305,7 +305,6 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
-
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
@@ -475,7 +474,9 @@ func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool
 }
 
 func (u *UFileRequest) genFileURL(keyName string) string {
-	return u.baseURL.String() + keyName
+	//fix goproxy两次encode导致403
+	keyName = strings.Replace(keyName, "%", "%25", -1)
+	return u.baseURL.String() + url.PathEscape(keyName)
 }
 
 //Restore 用于解冻冷存类型的文件
@@ -538,7 +539,7 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	if err != nil {
 		return err
 	}
-	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+	req.Header.Add("X-Ufile-Copy-Source", "/"+srcBucketName+"/"+srcKeyName)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
