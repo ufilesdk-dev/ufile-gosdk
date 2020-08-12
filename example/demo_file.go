@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 	"github.com/ufilesdk-dev/ufile-gosdk/example/helper"
@@ -95,7 +96,7 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	}
 	log.Println("文件上传成功!!")
 	log.Println("公有空间文件下载 URL 是：", req.GetPublicURL(keyName))
-	log.Println("私有空间文件下载 URL 是：", req.GetPrivateURL(keyName, 24*60*60)) //过期时间为一天
+	log.Println("私有空间文件下载 URL 是：", req.GetPrivateURL(keyName, 24*60*60 * time.Second)) //过期时间为一天
 
 	log.Println("正在获取文件的基本信息。")
 	err = req.HeadFile(keyName)
@@ -137,6 +138,14 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 		return
 	}
 	log.Printf("获取文件列表返回的信息是：\n%s\n", list)
+
+	log.Println("正在获取目录文件列表...")
+	listV2, err := req.ListObjects(newKeyName, "", "/", 10)
+	if err != nil {
+		log.Println("获取目录文件列表失败，错误信息为：", err.Error())
+		return
+	}
+	log.Printf("获取目录文件列表返回的信息是：\n%s\n", listV2)
 
 	log.Println("正在删除刚刚上传的文件")
 	err = req.DeleteFile(newKeyName)

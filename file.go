@@ -47,6 +47,56 @@ func (f FileListResponse) String() string {
 	return structPrettyStr(f)
 }
 
+//ListObjectsResponse 用 ListObjects 接口返回的 list 数据。
+//Name Bucket名称
+//Prefix 查询结果的前缀
+//MaxKeys 查询结果的最大数量
+//Delimiter 查询结果的目录分隔符
+//IsTruncated 返回结果是否被截断。若值为true，则表示仅返回列表的一部分，NextMarker可作为之后迭代的游标
+//NextMarker 可作为查询请求中的的Marker参数，实现迭代查询
+//Contents 文件列表
+//CommonPrefixes 以Delimiter结尾，并且有共同前缀的目录列表
+type ListObjectsResponse struct {
+	Name           string          `json:"Name,omitempty"`
+	Prefix         string          `json:"Prefix,omitempty"`
+	MaxKeys        string          `json:"MaxKeys,omitempty"`
+	Delimiter      string          `json:"Delimiter,omitempty"`
+	IsTruncated    bool            `json:"IsTruncated,omitempty"`
+	NextMarker     string          `json:"NextMarker,omitempty"`
+	Contents       []ObjectInfo    `json:"Contents,omitempty"`
+	CommonPrefixes []CommonPreInfo `json:"CommonPrefixes,omitempty"`
+}
+
+func (f ListObjectsResponse) String() string {
+	return structPrettyStr(f)
+}
+
+//ObjectInfo 用于 ListObjectsResponse 里面的 Contents 字段
+//Key 文件名称
+//MimeType 文件mimetype
+//LastModified 文件最后修改时间
+//CreateTime 文件创建时间
+//ETag 标识文件内容
+//Size 文件大小
+//StorageClass 文件存储类型
+//UserMeta 用户自定义元数据
+type ObjectInfo struct {
+	Key          string            `json:"Key,omitempty"`
+	MimeType     string            `json:"MimeType,omitempty"`
+	LastModified int               `json:"LastModified,omitempty"`
+	CreateTime   int               `json:"CreateTime,omitempty"`
+	Etag         string            `json:"Etag,omitempty"`
+	Size         string            `json:"Size,omitempty"`
+	StorageClass string            `json:"StorageClass,omitempty"`
+	UserMeta     map[string]string `json:"UserMeta,omitempty"`
+}
+
+//CommonPreInfo 用于 ListObjectsResponse 里面的 CommonPrefixes 字段
+//Prefix 以Delimiter结尾的公共前缀目录名
+type CommonPreInfo struct {
+	Prefix string `json:"Prefix,omitempty"`
+}
+
 //UploadHit 文件秒传，它的原理是计算出文件的 etag 值与远端服务器进行对比，如果文件存在就快速返回。
 func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
 	file, err := openFile(filePath)
@@ -98,7 +148,10 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
 
 	boundry := makeBoundry()
-	body := makeFormBody(authorization, boundry, keyName, mimeType, u.verifyUploadMD5, file)
+	body, err := makeFormBody(authorization, boundry, keyName, mimeType, u.verifyUploadMD5, file)
+	if err != nil {
+		return err
+	}
 	//lastline 一定要写，否则后端解析不到。
 	lastline := fmt.Sprintf("\r\n--%s--\r\n", boundry)
 	body.Write([]byte(lastline))
@@ -135,6 +188,53 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err
+	}
+
+	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+	req.Header.Add("Content-Type", mimeType)
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
+	}
+
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(b))
+		req.Header.Add("Content-MD5", md5Str)
+	}
+
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	fileSize := getFileSize(file)
+	req.Header.Add("Content-Length", strconv.FormatInt(fileSize, 10))
+
+	return u.request(req)
+}
+
+//PutFileWithIopString 支持上传iop, 直接指定iop字符串, 上传iop必须指定saveAs命令做持久化，否则图片处理不会生效
+func (u *UFileRequest) PutFileWithIopString(filePath, keyName, mimeType string, iopcmd string) error {
+	reqURL := u.genFileURL(keyName)
+	file, err := openFile(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	b, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	//增加iopcmd
+	if iopcmd != "" {
+		reqURL += "?" + iopcmd
 	}
 
 	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
@@ -294,17 +394,8 @@ func (u *UFileRequest) Download(reqURL string) error {
 	return u.request(req)
 }
 
-//Download 文件下载接口，下载前会先获取文件大小，如果小于 4M 直接下载。大于 4M 每次会按 4M 的分片来下载。
+//Download 文件下载接口, 对下载大文件比较友好；支持流式下载
 func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
-	err := u.HeadFile(keyName)
-	if err != nil {
-		return err
-	}
-	size := u.LastResponseHeader.Get("Content-Length")
-	fileSize, err := strconv.ParseInt(size, 10, 0)
-	if err != nil || fileSize <= 0 {
-		return fmt.Errorf("Parse content-lengt returned error")
-	}
 
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
 	req, err := http.NewRequest("GET", reqURL, nil)
@@ -312,29 +403,65 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 		return err
 	}
 
-	if fileSize < fourMegabyte {
-		err = u.request(req)
-		if err != nil {
-			return err
-		}
-		writer.Write(u.LastResponseBody)
-	} else {
-		var i int64
-		for i = 0; i < fileSize; i += fourMegabyte { // 一次下载 4 M
-			start := i
-			end := i + fourMegabyte - 1 //数组是从 0 开始的。 &_& .....
-			if end > fileSize {
-				end = fileSize
-			}
-			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
-			err = u.request(req)
-			if err != nil {
-				return err
-			}
-			writer.Write(u.LastResponseBody)
-		}
+	resp, err := u.requestWithResp(req)
+	if err != nil {
+		return err
 	}
-	return nil
+	defer resp.Body.Close()
+
+	u.LastResponseStatus = resp.StatusCode
+	u.LastResponseHeader = resp.Header
+	u.LastResponseBody = nil //流式下载无body存储在u里
+	u.lastResponse = resp
+	if !VerifyHTTPCode(resp.StatusCode) {
+		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	size := u.LastResponseHeader.Get("Content-Length")
+	fileSize, err := strconv.ParseInt(size, 10, 0)
+	if err != nil || fileSize < 0 {
+		return fmt.Errorf("Parse content-lengt returned error")
+	}
+	_, err = io.Copy(writer, resp.Body)
+	return err
+}
+
+//DownloadFileWithIopString 支持下载iop，直接指定iop命令字符串
+func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName string, iopcmd string) error {
+
+	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
+
+	//增加iopcmd，因为获取到下载链接已经带了query，所以这里使用&连接
+	if iopcmd != "" {
+		reqURL += "&" + iopcmd
+	}
+
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := u.requestWithResp(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	u.LastResponseStatus = resp.StatusCode
+	u.LastResponseHeader = resp.Header
+	u.LastResponseBody = nil //流式下载无body存储在u里
+	u.lastResponse = resp
+	if !VerifyHTTPCode(resp.StatusCode) {
+		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	size := u.LastResponseHeader.Get("Content-Length")
+	fileSize, err := strconv.ParseInt(size, 10, 0)
+	if err != nil || fileSize < 0 {
+		return fmt.Errorf("Parse content-lengt returned error")
+	}
+	_, err = io.Copy(writer, resp.Body)
+	return err
 }
 
 //PutWithCryptoFile 文件客户端加密上传
@@ -496,4 +623,36 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
+}
+
+//ListObjects 获取目录文件列表。
+//prefix 返回以Prefix作为前缀的目录文件列表
+//marker 返回以字母排序后，大于Marker的目录文件列表
+//delimiter 目录分隔符，当前只支持"/"和""，当Delimiter设置为"/"时，返回目录形式的文件列表，当Delimiter设置为""时，返回非目录层级文件列表
+//maxkeys 指定返回目录文件列表的最大数量，默认值为100
+func (u *UFileRequest) ListObjects(prefix, marker, delimiter string, maxkeys int) (list ListObjectsResponse, err error) {
+	query := &url.Values{}
+	query.Add("prefix", prefix)
+	query.Add("marker", marker)
+	query.Add("delimiter", delimiter)
+	if maxkeys == 0 {
+		maxkeys = 100
+	}
+	query.Add("max-keys", strconv.Itoa(maxkeys))
+	reqURL := u.genFileURL("") + "?listobjects&" + query.Encode()
+
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return
+	}
+
+	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
+	req.Header.Add("authorization", authorization)
+
+	err = u.request(req)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(u.LastResponseBody, &list)
+	return
 }

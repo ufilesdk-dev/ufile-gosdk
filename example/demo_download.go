@@ -1,10 +1,10 @@
-package main
+﻿package main
 
 import (
 	"flag"
 	"log"
 	"os"
-
+	"fmt"
 	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 )
 
@@ -30,6 +30,16 @@ func main() {
 		panic(err.Error())
 	}
 	log.Println("正在下载文件。。。。")
+
+	defer func(){
+		if(false){
+			fmt.Println("last status: ", req.LastResponseStatus);
+			fmt.Println("last header: ", req.LastResponseHeader);
+			fmt.Println("last body: ", req.LastResponseBody);
+			fmt.Println(string(req.DumpResponse(true)));
+		}
+	}()
+
 	file, err := os.OpenFile(*key, os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		panic(err.Error())
@@ -37,8 +47,10 @@ func main() {
 
 	err = req.DownloadFile(file, *key)
 	if err != nil {
-		log.Println("文件下载失败，失败原因：", err.Error())
+		log.Println("fail:", err.Error())
 		return
 	}
-	log.Println("文件下载成功。")
+
+
+	log.Println("success")
 }
