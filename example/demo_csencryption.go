@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
-	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 	"io/ioutil"
 	"log"
 	"os"
+
+	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 )
 
 const (
@@ -15,6 +16,19 @@ const (
 	remoteFileKey = "ciphertext.txt"
 	saveAsName    = "./download.txt"
 )
+
+//PutWithCryptoFile 文件客户端加密上传
+//func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) error
+//进行客户端加密上传时，需要用户提供加解密密钥，详情见配置文件相关文档
+//本SDK支持加密算法AES-GCM-NoPadding，如有其它加密算法需求，需自行实现加解密方法
+//注意在客户端加密的条件下，ufile暂不支持文件分片上传下载操作。
+//mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
+
+//DownloadWithDecryptFile 文件客户端加密下载
+//func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string) error
+//注意在客户端加密的条件下，ufile暂不支持文件分片上传下载操作,因此客户端加密后文件下载请使用此接口
+//进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
 
 func main() {
 	log.SetFlags(log.Lshortfile)

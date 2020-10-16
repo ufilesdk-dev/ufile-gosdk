@@ -519,6 +519,10 @@ func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) er
 //注意在客户端加密的条件下，ufile暂不支持文件分片上传下载操作,因此客户端加密后文件下载请使用此接口
 //进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
 func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string) error {
+	if u.Crypto == nil {
+		return errors.New("客户端加密下载必须要提供加密密钥")
+	}
+
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
