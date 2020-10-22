@@ -11,7 +11,7 @@
 签名相关的算法与详细实现请见 [Auth 模块](auth.go)
 
 ## 安装
-`go get github.com/ufilesdk-dev/ufile-gosdk`
+`go get github.com/ufilesdk-dev/ufile-gosdk/v2`
 
 ### 执行测试
 `cd example; go run demo_file.go`
