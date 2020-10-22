@@ -35,6 +35,7 @@
 [Put 带回调上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutFileWithPolicy)
 [同步分片上传-带回调](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.MPutWithPolicy)，
 [异步分片上传-带回调](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.AsyncMPutWithPolicy)  
+[文件客户端加密上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutWithEncryptFile), [文件客户端解密下载](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.DownloadWithDecryptFile)
 
 ### Bucket 操作相关功能
 [创建 bucket](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.CreateBucket)  
@@ -64,6 +65,31 @@ if err != nil {
 }
 ```
 更详细的代码请参考 [example/demo_file.go](/example/demo_file.go) 和 [example/demo_bucket.go](example/demo_bucket.go)
+
+## 客户端加密
+用户需先在配置文件中提供密钥，密钥位数限定16,24或32，分别对应AES-128，AES-192或AES-256算法，配置文件参考[example/config.json.example](/example/config.json.example)
+
+### 示例代码
+```go
+import ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
+config, err := ufsdk.LoadConfig(configFile)
+if err != nil {
+    panic(err.Error())
+}
+
+req, err := ufsdk.NewFileRequest(config, nil)
+if err != nil {
+    panic(err.Error())
+}
+log.Println("正在加密上传文件。。。。")
+
+err = req.PutWithEncryptFile(uploadFile, remoteFileKey, "")
+if err != nil {
+    log.Println("文件上传失败，失败原因：", err.Error())
+    return
+}
+```
+更详细的代码请参考 [example/demo_csencryption.go](/example/demo_csencryption.go) 
 
 ## 文档说明
 本 SDK 使用 [godoc](https://blog.golang.org/godoc-documenting-go-code) 约定的方法对每个 export 出来的接口进行注释。

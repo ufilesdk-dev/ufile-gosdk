@@ -1,12 +1,15 @@
 {
-    "说明1":"管理 bucket 创建和删除必须要公私钥，如果只做文件上传和下载用TOEKN就够了，为了安全，强烈建议只使用 TOKEN 做文件管理",
-    "public_key":"",
-    "private_key":"",
+     "说明1":"管理 bucket 创建和删除必须要公私钥，如果只做文件上传和下载用TOEKN就够了，为了安全，强烈建议只使用 TOKEN 做文件管理",
+     "public_key":"",
+     "private_key":"",
 
-    "说明2":"以下两个参数是用来管理文件用的。对应的是 file.go 里面的接口，file_host 是不带 bucket 名字的。比如：北京地域的host填cn-bj.ufileos.com，而不是填 bucketname.cn-bj.ufileos.com。如果是自定义域名，请直接带上 http 开头的 URL。如：http://example.com，而不是填 example.com。",
-    "bucket_name":"",
-    "file_host":"",
+     "说明2":"以下两个参数是用来管理文件用的。对应的是 file.go 里面的接口，file_host 是不带 bucket 名字的。比如：北京地域的host填cn-bj.ufileos.com，而不是填 bucketname.cn-bj.ufileos.com。如果是自定义域名，请直接带上 http 开头的 URL。如：http://example.com，而不是填 example.com。",
+     "bucket_name":"",
+     "file_host":"",
 
-    "说明3":"以下参数是用来管理 bucket 用的。对应的是 bucket.go 里面的接口",
-    "bucket_host":""
-}
+     "说明3":"以下参数是用来管理 bucket 用的。对应的是 bucket.go 里面的接口",
+     "bucket_host":"",
+
+     "说明4":"以下参数是用来做客户端文件加解密的密钥，请务必妥善保管，丢失后将无法解密文件，长度限定为16,24或32",
+     "crypto_key":""
+ }

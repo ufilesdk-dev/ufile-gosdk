@@ -2,9 +2,10 @@ package ufsdk
 
 import (
 	"bytes"
-	"encoding/base64"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,6 +18,7 @@ import (
 
 const (
 	fourMegabyte = 1 << 22 //4M
+	agnCyptoAlg  = "AES/GCM/NoPadding"
 )
 
 //FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
@@ -305,7 +307,6 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
-
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
@@ -463,6 +464,89 @@ func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName strin
 	return err
 }
 
+//PutWithCryptoFile 文件客户端加密上传
+//进行客户端加密上传时，需要用户提供加解密密钥，详情见配置文件相关文档
+//本SDK支持加密算法AES-GCM-NoPadding，如有其它加密算法需求，需自行实现加解密方法
+//注意在客户端加密的条件下，ufile暂不支持文件分片上传下载操作。
+//mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
+func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) error {
+
+	if u.Crypto == nil {
+		return errors.New("客户端加密上传必须要提供加密密钥")
+	}
+
+	reqURL := u.genFileURL(keyName)
+	file, err := openFile(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	plaintext, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	b, err := u.Crypto.Encrypt(plaintext)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+	req.Header.Add("Content-Type", mimeType)
+
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(b))
+		req.Header.Add("Content-MD5", md5Str)
+	}
+
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	ciphertextSize := len(b)
+	req.Header.Add("Content-Length", strconv.Itoa(ciphertextSize))
+	return u.request(req)
+}
+
+//DownloadWithDecryptFile 文件客户端加密下载
+//注意在客户端加密的条件下，ufile暂不支持文件分片上传下载操作,因此客户端加密后文件下载请使用此接口
+//进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
+func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string) error {
+	if u.Crypto == nil {
+		return errors.New("客户端加密下载必须要提供加密密钥")
+	}
+
+	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return err
+	}
+
+	err = u.request(req)
+	if err != nil {
+		return err
+	}
+
+	u.LastResponseBody, err = u.Crypto.Decrypt(u.LastResponseBody)
+	if err != nil {
+		return err
+	}
+
+	_, err = writer.Write(u.LastResponseBody)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 //CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致
 func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool {
 	err := u.HeadFile(remoteKeyName)
@@ -538,7 +622,7 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	if err != nil {
 		return err
 	}
-	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+	req.Header.Add("X-Ufile-Copy-Source", "/"+srcBucketName+"/"+srcKeyName)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
