@@ -1,6 +1,7 @@
 package ufsdk
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/md5"
 	"encoding/base64"
@@ -11,9 +12,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ufilesdk-dev/ufile-gosdk/utils"
 )
 
 const (
@@ -475,6 +479,10 @@ func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) er
 	if u.Crypto == nil {
 		return errors.New("客户端加密上传必须要提供加密密钥")
 	}
+	Crypto, err := utils.NewCrypto(u.Crypto.Key)
+	if err != nil {
+		return err
+	}
 
 	reqURL := u.genFileURL(keyName)
 	file, err := openFile(filePath)
@@ -488,10 +496,7 @@ func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) er
 		return err
 	}
 
-	b, err := u.Crypto.Encrypt(plaintext)
-	if err != nil {
-		return err
-	}
+	b := Crypto.XOR(plaintext)
 
 	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
 	if err != nil {
@@ -523,6 +528,11 @@ func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string)
 		return errors.New("客户端加密下载必须要提供加密密钥")
 	}
 
+	Crypto, err := utils.NewCrypto(u.Crypto.Key)
+	if err != nil {
+		return err
+	}
+
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
@@ -534,10 +544,7 @@ func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string)
 		return err
 	}
 
-	u.LastResponseBody, err = u.Crypto.Decrypt(u.LastResponseBody)
-	if err != nil {
-		return err
-	}
+	u.LastResponseBody = Crypto.XOR(u.LastResponseBody)
 
 	_, err = writer.Write(u.LastResponseBody)
 	if err != nil {
@@ -545,6 +552,56 @@ func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string)
 	}
 
 	return nil
+}
+
+//MDownloadWithDecryptFile 文件客户端加密分片下载
+//推荐客户端加密后的大文件下载使用此接口
+//进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
+func (u *UFileRequest) MDownloadWithDecryptFile(writer io.Writer, keyName string) error {
+	if u.Crypto == nil {
+		return errors.New("客户端加密下载必须要提供加密密钥")
+	}
+	Crypto, err := utils.NewCrypto(u.Crypto.Key)
+
+	//先创建一个临时文件
+	tmpfile := "cryptoTmpFile"
+	writeFile, err := os.Create(tmpfile)
+	if err != nil {
+		return err
+	}
+
+	//将下载内容写入临时文件
+	err = u.DownloadFile(writeFile, keyName)
+	writeFile.Close()
+	if err != nil {
+		return err
+	}
+
+	//分片解密到writer
+	readFile, err := openFile(tmpfile)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer readFile.Close()
+
+	blkSIZE := 2 << 21
+	plainBlk := make([]byte, blkSIZE)
+	buf := bufio.NewWriter(writer)
+	for {
+		n, err := readFile.Read(plainBlk) //读文件
+		if err == io.EOF {
+			break
+		}
+
+		cipherBlk := Crypto.XOR(plainBlk[:n]) //加密
+		buf.Write(cipherBlk)                  //写文件
+	}
+	err = buf.Flush()
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 //CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致

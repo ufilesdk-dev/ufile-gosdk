@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -12,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/ufilesdk-dev/ufile-gosdk/utils"
 )
 
 //MultipartState 用于保存分片上传的中间状态
@@ -82,6 +85,59 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 	return u.FinishMultipartUpload(state)
 }
 
+//MPutWithEncryptFile 分片上传一个加密文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是同步一片一片的上传。
+//mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
+//大于 100M 的加密文件推荐使用本接口上传。
+func (u *UFileRequest) MPutWithEncryptFile(filePath, keyName, mimeType string) error {
+	if u.Crypto == nil {
+		return errors.New("客户端加密上传必须要提供加密密钥")
+	}
+	Crypto, err := utils.NewCrypto(u.Crypto.Key)
+	if err != nil {
+		return err
+	}
+
+	file, err := openFile(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+
+	state, err := u.InitiateMultipartUpload(keyName, mimeType)
+	if err != nil {
+		return err
+	}
+
+	chunk := make([]byte, state.BlkSize)
+	fsize := getFileSize(file)
+	chunkCount := divideCeil(fsize, int64(state.BlkSize)) //向上取整
+	var pos int
+	for {
+		bytesRead, fileErr := file.Read(chunk)
+		if fileErr == io.EOF || bytesRead == 0 { //后面直接读到了结尾
+			break
+		}
+		bytesCipher := Crypto.XOR(chunk[:bytesRead]) //加密
+
+		buf := bytes.NewBuffer(bytesCipher)
+
+		err := u.UploadPart(buf, state, pos)
+		if err != nil {
+			u.AbortMultipartUpload(state)
+			return err
+		}
+		pos++
+		fmt.Printf("\r%d/%d", pos, chunkCount)
+	}
+
+	fmt.Println()
+	return u.FinishMultipartUpload(state)
+}
+
 //AsyncMPut 异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
@@ -135,6 +191,7 @@ func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int)
 			chunk := make([]byte, state.BlkSize)
 			bytesRead, _ := file.ReadAt(chunk, offset)
 			e := u.UploadPart(bytes.NewBuffer(chunk[:bytesRead]), state, pos)
+			fmt.Printf("\r%d/%d", pos, chunkCount)
 			concurrentChan <- e //跑完一个 goroutine 后，发信号表示可以开启新的 goroutine。
 		}(i)
 	}
@@ -159,6 +216,104 @@ func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int)
 		return err
 	}
 
+	fmt.Println()
+	return u.FinishMultipartUpload(state)
+}
+
+//AsyncMPutWithEncryptFile 异步分片上传一个加密文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
+//mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+//keyName 表示传到 ufile 的文件名。
+//大于 100M 的文件推荐使用本接口上传。
+//同时并发上传的分片数量为10
+func (u *UFileRequest) AsyncMPutWithEncryptFile(filePath, keyName, mimeType string) error {
+	return u.AsyncUploadWithEncryptFile(filePath, keyName, mimeType, 10)
+}
+
+//AsyncUploadWithEncryptFile AsyncMPutWithEncryptFile 的升级版, jobs 表示同时并发的数量。
+func (u *UFileRequest) AsyncUploadWithEncryptFile(filePath, keyName, mimeType string, jobs int) error {
+	//待精简和优化
+	if u.Crypto == nil {
+		return errors.New("客户端加密上传必须要提供加密密钥")
+	}
+	Crypto, err := utils.NewCrypto(u.Crypto.Key)
+	if err != nil {
+		return err
+	}
+	if jobs <= 0 {
+		jobs = 1
+	}
+
+	if jobs >= 30 {
+		jobs = 10
+	}
+
+	file, err := openFile(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+
+	state, err := u.InitiateMultipartUpload(keyName, mimeType)
+	if err != nil {
+		return err
+	}
+	fsize := getFileSize(file)
+	chunkCount := divideCeil(fsize, int64(state.BlkSize)) //向上取整
+	concurrentChan := make(chan error, jobs)
+	for i := 0; i != jobs; i++ {
+		concurrentChan <- nil
+	}
+
+	wg := &sync.WaitGroup{}
+	for i := 0; i != chunkCount; i++ {
+		uploadErr := <-concurrentChan //最初允许启动 10 个 goroutine，超出10个后，有分片返回才会开新的goroutine.
+		if uploadErr != nil {
+			err = uploadErr
+			break // 中间如果出现错误立即停止继续上传
+		}
+		wg.Add(1)
+		go func(pos int) {
+			defer wg.Done()
+			offset := int64(state.BlkSize * pos)
+			chunk := make([]byte, state.BlkSize)
+			bytesRead, fileErr := file.ReadAt(chunk, offset)
+			if fileErr == io.EOF || bytesRead == 0 { //后面直接读到了结尾
+				return
+			}
+			bytesCipher := Crypto.XOR(chunk[:bytesRead]) //加密
+			buf := bytes.NewBuffer(bytesCipher)
+
+			e := u.UploadPart(buf, state, pos)
+
+			fmt.Printf("\r%d/%d", pos, chunkCount)
+			concurrentChan <- e //跑完一个 goroutine 后，发信号表示可以开启新的 goroutine。
+		}(i)
+	}
+	wg.Wait()       //等待所有任务返回
+	if err == nil { //再次检查剩余上传完的分片是否有错误
+	loopCheck:
+		for {
+			select {
+			case e := <-concurrentChan:
+				err = e
+				if err != nil {
+					break loopCheck
+				}
+			default:
+				break loopCheck
+			}
+		}
+	}
+	close(concurrentChan)
+	if err != nil {
+		u.AbortMultipartUpload(state)
+		return err
+	}
+
+	fmt.Println()
 	return u.FinishMultipartUpload(state)
 }
 
