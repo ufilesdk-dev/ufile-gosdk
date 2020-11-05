@@ -235,10 +235,10 @@ func (u *UFileRequest) AsyncUploadWithEncryptFile(filePath, keyName, mimeType st
 	if u.Crypto == nil {
 		return errors.New("客户端加密上传必须要提供加密密钥")
 	}
-	Crypto, err := utils.NewCrypto(u.Crypto.Key)
-	if err != nil {
-		return err
-	}
+	// Crypto, err := utils.NewCrypto(u.Crypto.Key)
+	// if err != nil {
+	// 	return err
+	// }
 	if jobs <= 0 {
 		jobs = 1
 	}
@@ -281,6 +281,11 @@ func (u *UFileRequest) AsyncUploadWithEncryptFile(filePath, keyName, mimeType st
 			chunk := make([]byte, state.BlkSize)
 			bytesRead, fileErr := file.ReadAt(chunk, offset)
 			if fileErr == io.EOF || bytesRead == 0 { //后面直接读到了结尾
+				return
+			}
+			Crypto, err := utils.NewCrypto(u.Crypto.Key) //XOR不支持并发，所以每个进程都要初始化Crypto
+			if err != nil {
+				concurrentChan <- err
 				return
 			}
 			bytesCipher := Crypto.XOR(chunk[:bytesRead]) //加密
