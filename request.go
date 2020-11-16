@@ -64,7 +64,7 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 		if err != nil {
 			return nil, err
 		}
-	}
+	} 
 	return req, nil
 }
 

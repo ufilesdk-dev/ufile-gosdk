@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var aesGCMTests = []struct {
+var aesCTRTests = []struct {
 	key, plaintext string
 }{
 	{
@@ -108,8 +108,8 @@ var aesGCMTests = []struct {
 	},
 }
 
-func TestAESGCM(t *testing.T) {
-	for i, test := range aesGCMTests {
+func TestAESCTR(t *testing.T) {
+	for i, test := range aesCTRTests {
 		key, _ := hex.DecodeString(test.key)
 		plaintext, _ := hex.DecodeString(test.plaintext)
 
@@ -119,7 +119,7 @@ func TestAESGCM(t *testing.T) {
 			continue
 		}
 
-		ct1, err := crypto.Encrypt(plaintext)
+		ct1 := crypto.XOR(plaintext)
 		if err != nil {
 			t.Errorf("#%d: Encrypt err:%s", i, err.Error())
 			continue
@@ -136,7 +136,7 @@ func TestAESGCM(t *testing.T) {
 			continue
 		}*/
 
-		plaintext2, err := crypto.Decrypt(ct1)
+		plaintext2 := crypto.XOR(ct1)
 		if err != nil {
 			t.Errorf("#%d: Decrypt : %s", i, err.Error())
 			continue
@@ -148,7 +148,7 @@ func TestAESGCM(t *testing.T) {
 	}
 }
 
-func benchmarkAESGCMEncrypt(b *testing.B, buf []byte) {
+func benchmarkAESCTREncrypt(b *testing.B, buf []byte) {
 	b.SetBytes(int64(len(buf)))
 
 	var key [16]byte
@@ -160,14 +160,12 @@ func benchmarkAESGCMEncrypt(b *testing.B, buf []byte) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err = crypto.Encrypt(buf)
-		if err != nil {
-			b.Errorf("Encrypt: %v", err)
-		}
+		crypto.XOR(buf)
+
 	}
 }
 
-func benchmarkAESGCMDecrypt(b *testing.B, buf []byte) {
+func benchmarkAESCTRDecrypt(b *testing.B, buf []byte) {
 	b.SetBytes(int64(len(buf)))
 
 	var key [16]byte
@@ -177,32 +175,27 @@ func benchmarkAESGCMDecrypt(b *testing.B, buf []byte) {
 		b.Errorf("NewCrypto: %v", err)
 	}
 
-	out, err := crypto.Encrypt(buf)
-	if err != nil {
-		b.Errorf("Encrypt: %v", err)
-	}
+	out := crypto.XOR(buf)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err = crypto.Decrypt(out)
-		if err != nil {
-			b.Errorf("Decrypt: %v", err)
-		}
+		_ = crypto.XOR(out)
+
 	}
 }
 
-func BenchmarkAESGCMEncrypt1K(b *testing.B) {
-	benchmarkAESGCMEncrypt(b, make([]byte, 1024))
+func BenchmarkAESCTREncrypt1K(b *testing.B) {
+	benchmarkAESCTREncrypt(b, make([]byte, 1024))
 }
 
-func BenchmarkAESGCMDecrypt1K(b *testing.B) {
-	benchmarkAESGCMDecrypt(b, make([]byte, 1024))
+func BenchmarkAESCTRDecrypt1K(b *testing.B) {
+	benchmarkAESCTRDecrypt(b, make([]byte, 1024))
 }
 
-func BenchmarkAESGCMEncrypt8K(b *testing.B) {
-	benchmarkAESGCMEncrypt(b, make([]byte, 8*1024))
+func BenchmarkAESCTREncrypt8K(b *testing.B) {
+	benchmarkAESCTREncrypt(b, make([]byte, 8*1024))
 }
 
-func BenchmarkAESGCMDecrypt8K(b *testing.B) {
-	benchmarkAESGCMDecrypt(b, make([]byte, 8*1024))
+func BenchmarkAESCTRDecrypt8K(b *testing.B) {
+	benchmarkAESCTRDecrypt(b, make([]byte, 8*1024))
 }
