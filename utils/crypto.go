@@ -55,8 +55,8 @@ func NewCrypto_2(key []byte, startPos uint64) (cry *Crypto, err error) {
 
 //实现数据加解密
 func (c *Crypto) XOR(text1 []byte) []byte {
+	text2 := make([]byte, len(text1))
+	c.ctr.XORKeyStream(text2, text1)
 
-	c.ctr.XORKeyStream(text1, text1)
-
-	return text1
+	return text2
 }

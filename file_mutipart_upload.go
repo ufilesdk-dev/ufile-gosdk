@@ -111,27 +111,26 @@ func (u *UFileRequest) MPutWithEncryptFile(filePath, keyName, mimeType string) e
 	}
 
 	chunk := make([]byte, state.BlkSize)
+	Crypto, err := utils.NewCrypto(u.Crypto.Key) //根据密钥，初始化Crypto
 	var pos int
+	if err != nil {
+		return err
+	}
 	for {
 		bytesRead, fileErr := file.Read(chunk)
 		if fileErr == io.EOF || bytesRead == 0 { //后面直接读到了结尾
 			break
 		}
-		Crypto, err := utils.NewCrypto_2(u.Crypto.Key, uint64(pos)*uint64(state.BlkSize)) //根据分片大小和分片序号（已加密数据长度）生成IV
-		if err != nil {
-			return err
-		}
 
 		bytesCipher := Crypto.XOR(chunk[:bytesRead]) //加密
-
 		buf := bytes.NewBuffer(bytesCipher)
-
 		err = u.UploadPart(buf, state, pos)
 		if err != nil {
 			u.AbortMultipartUpload(state)
 			return err
 		}
 		pos++
+
 	}
 
 	return u.FinishMultipartUpload(state)
@@ -217,7 +216,7 @@ func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int)
 	return u.FinishMultipartUpload(state)
 }
 
-//AsyncMPutWithEncryptFile 加密并异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行加密和分片上传，上传的方式是使用异步的方式同时加密和传多个分片的块。
+//AsyncMPutWithEncryptFile 加密并异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行加密和分片上传，上传的方式是使用异步的方式同时加密并传多个分片的块。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
 //大于 100M 的文件推荐使用本接口上传。
@@ -275,7 +274,7 @@ func (u *UFileRequest) AsyncUploadWithEncryptFile(filePath, keyName, mimeType st
 			chunk := make([]byte, size)
 			bytesRead, _ := file.ReadAt(chunk, offset)
 
-			//根据分片大小和分片序号进行初始化
+			//根据分片大小和分片序号初始化Crypto
 			Crypto, err := utils.NewCrypto_2(u.Crypto.Key, uint64(pos)*uint64(size))
 			if err != nil {
 				concurrentChan <- err

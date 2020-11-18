@@ -89,7 +89,7 @@ if err != nil {
     return
 }
 ```
-更详细的代码请参考 [example/demo_csencryption.go](/example/demo_csencryption.go) 
+该功能支持分片上传，更详细的代码请参考 [example/demo_csencryption.go](/example/demo_csencryption.go) 
 
 ## 文档说明
 本 SDK 使用 [godoc](https://blog.golang.org/godoc-documenting-go-code) 约定的方法对每个 export 出来的接口进行注释。

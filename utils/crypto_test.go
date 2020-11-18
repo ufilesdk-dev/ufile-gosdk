@@ -110,6 +110,7 @@ var aesCTRTests = []struct {
 
 func TestAESCTR(t *testing.T) {
 	for i, test := range aesCTRTests {
+		//加密
 		key, _ := hex.DecodeString(test.key)
 		plaintext, _ := hex.DecodeString(test.plaintext)
 
@@ -125,26 +126,61 @@ func TestAESCTR(t *testing.T) {
 			continue
 		}
 
-		/*ct2, err := crypto.Encrypt(plaintext)
+		//测试解密
+		crypto_2, err := NewCrypto(key)
 		if err != nil {
-			t.Errorf("#%d: Encrypt : %s", i, err.Error())
+			t.Errorf("#%d: NewCrypto : %s", i, err.Error())
 			continue
 		}
+		plaintext2 := crypto_2.XOR(ct1)
 
-		if bytes.Equal(ct1, ct2) {
-			t.Errorf("#%d: ciphertext's match: got %x vs %x", i, ct1, ct2)
-			continue
-		}*/
-
-		plaintext2 := crypto.XOR(ct1)
-		if err != nil {
-			t.Errorf("#%d: Decrypt : %s", i, err.Error())
-			continue
-		}
 		if !bytes.Equal(plaintext, plaintext2) {
 			t.Errorf("#%d: plaintext's don't match: got %x vs %x", i, plaintext2, plaintext)
 			continue
 		}
+
+		//测试同一个crypto的分段加密
+		crypto_3, err := NewCrypto(key)
+		if err != nil {
+			t.Errorf("#%d: NewCrypto : %s", i, err.Error())
+			continue
+		}
+		size := len(plaintext)
+		ct2_1 := crypto_3.XOR(plaintext[:size/2])
+		ct2_2 := crypto_3.XOR(plaintext[size/2:])
+		ct2 := append(ct2_1, ct2_2...)
+
+		if !bytes.Equal(ct1, ct2) {
+			t.Errorf("#%d: cryptotext's don't match: got %x vs %x", i, plaintext2, plaintext)
+			continue
+		}
+
+		//测试修改iv的crypto的分片加密
+		blkSize := 16
+		cryptoSize := 0 //已加密长度
+		buf := make([]byte, blkSize)
+		plainReader := bytes.NewReader(plaintext)
+		var ct3 []byte
+		for {
+			n, err := plainReader.Read(buf)
+			if err != nil {
+				break
+			}
+			crypto_4, err := NewCrypto_2(key, uint64(cryptoSize))
+			if err != nil {
+				t.Errorf("#%d: NewCrypto : %s", i, err.Error())
+				break
+			}
+			ct3Tmp := crypto_4.XOR(buf[:n])
+			ct3 = append(ct3, ct3Tmp...)
+			cryptoSize += n
+		}
+
+		if !bytes.Equal(ct1, ct3) {
+			t.Errorf("#%d: cryptotext's don't match: got %x vs %x", i, plaintext2, plaintext)
+			continue
+		}
+
 	}
 }
 
