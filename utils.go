@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	blkSIZE = 2 << 21
+	blkSIZE = 2 << 21 //4M
 )
 
 //Config 配置文件序列化所需的全部字段

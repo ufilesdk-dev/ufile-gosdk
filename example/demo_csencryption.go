@@ -18,38 +18,38 @@ const (
 	saveAsName    = "./download.txt"
 )
 
-//PutWithCryptoFile 文件客户端加密上传
-//func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) error
+//PutEncryptedFile 文件客户端加密上传
+//func (u *UFileRequest) PutEncryptedFile(filePath, keyName, mimeType string) error
 //进行客户端加密上传时，需要用户提供加解密密钥，详情见配置文件相关文档
 //本SDK支持加密算法AES-CTR，如有其它加密算法需求，需自行实现加解密方法
 //mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
 
-//DownloadWithDecryptFile 文件客户端加密下载
-//func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string) error
+//DownloadEncryptedFile 文件客户端加密下载
+//func (u *UFileRequest) DownloadEncryptedFile(writer io.Writer, keyName string) error
 //进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
 
-//MPutWithEncryptFile 加密并同步分片上传一个文件
-//func (u *UFileRequest) MPutWithEncryptFile(filePath, keyName, mimeType string) error
+//MPutEncryptedFile 加密并同步分片上传一个文件
+//func (u *UFileRequest) MPutEncryptedFile(filePath, keyName, mimeType string) error
 //filePath 是本地文件所在的路径，内部会自动对文件进行加密和分片上传，上传的方式是同步一片一片的加密再上传。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
 //大于 100M 的加密文件推荐使用本接口上传。
 
-//AsyncMPutWithEncryptFile 加密并异步分片上传一个文件
-//func (u *UFileRequest) AsyncMPutWithEncryptFile(filePath, keyName, mimeType string) error
+//AsyncMPutEncryptedFile 加密并异步分片上传一个文件
+//func (u *UFileRequest) AsyncMPutEncryptedFile(filePath, keyName, mimeType string) error
 //filePath 是本地文件所在的路径，内部会自动对文件进行加密和分片上传，上传的方式是使用异步的方式同时加密并传多个分片的块。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
 //大于 100M 的文件推荐使用本接口上传。
 //同时并发上传的分片数量为10
 
-//DownloadLargeFileWithDecryptFile 客户端加密下载接口
-//func (u *UFileRequest) DownloadLargeFileWithDecryptFile(writer io.Writer, keyName string) error
+//DownloadLargeEncryptedFile 客户端加密下载接口
+//func (u *UFileRequest) DownloadLargeEncryptedFile(writer io.Writer, keyName string) error
 //对下载大文件比较友好；支持流式下载
 //进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
 
-func PutWithCryptoFileExample() {
+func PutEncryptedFileExample() {
 	log.SetFlags(log.Lshortfile)
 	config, err := ufsdk.LoadConfig(configFile)
 	if err != nil {
@@ -63,7 +63,7 @@ func PutWithCryptoFileExample() {
 	log.Println("正在加密上传文件。。。。")
 
 	//文件客户端加密上传
-	err = req.PutWithEncryptFile(uploadFile, remoteFileKey, "")
+	err = req.PutEncryptedFile(uploadFile, remoteFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return
@@ -78,7 +78,7 @@ func PutWithCryptoFileExample() {
 	}
 	defer file.Close()
 
-	err = req.DownloadWithDecryptFile(file, remoteFileKey)
+	err = req.DownloadEncryptedFile(file, remoteFileKey)
 	if err != nil {
 		log.Println("下载文件出错，出错信息为：", err.Error())
 	}
@@ -94,7 +94,7 @@ func PutWithCryptoFileExample() {
 	}
 }
 
-func MPutWithCryptoFileExample() {
+func MPutEncryptedFileExample() {
 	log.SetFlags(log.Lshortfile)
 	config, err := ufsdk.LoadConfig(configFile)
 	if err != nil {
@@ -108,7 +108,7 @@ func MPutWithCryptoFileExample() {
 	log.Println("正在同步分片上传加密文件。。。。")
 
 	//文件客户端加密同步分片上传
-	err = req.MPutWithEncryptFile(uploadFile, remoteFileKey, "")
+	err = req.MPutEncryptedFile(uploadFile, remoteFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return
@@ -123,7 +123,7 @@ func MPutWithCryptoFileExample() {
 	}
 	defer file.Close()
 
-	err = req.DownloadLargeFileWithDecryptFile(file, remoteFileKey)
+	err = req.DownloadLargeEncryptedFile(file, remoteFileKey)
 	if err != nil {
 		log.Println("加密下载大文件出错，出错信息为：", err.Error())
 	}
@@ -141,7 +141,7 @@ func MPutWithCryptoFileExample() {
 
 }
 
-func AsyncMPutWithEncryptFile() {
+func AsyncMPutEncryptedFile() {
 	log.SetFlags(log.Lshortfile)
 	config, err := ufsdk.LoadConfig(configFile)
 	if err != nil {
@@ -155,7 +155,7 @@ func AsyncMPutWithEncryptFile() {
 	log.Println("正在异步分片上传加密文件。。。。")
 
 	//异步分片上传加密文件
-	err = req.AsyncMPutWithEncryptFile(uploadFile, remoteFileKey, "")
+	err = req.AsyncMPutEncryptedFile(uploadFile, remoteFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return
@@ -170,7 +170,7 @@ func AsyncMPutWithEncryptFile() {
 	}
 	defer file.Close()
 
-	err = req.DownloadLargeFileWithDecryptFile(file, remoteFileKey)
+	err = req.DownloadLargeEncryptedFile(file, remoteFileKey)
 	if err != nil {
 		log.Println("下载大文件出错，出错信息为：", err.Error())
 	}
@@ -188,9 +188,9 @@ func AsyncMPutWithEncryptFile() {
 
 }
 func main() {
-	PutWithCryptoFileExample()
-	MPutWithCryptoFileExample()
-	AsyncMPutWithEncryptFile()
+	PutEncryptedFileExample()
+	MMPutEncryptedFileExample()
+	AsyncMPutEncryptedFile()
 }
 
 func compareFileMd5() (bool, error) {

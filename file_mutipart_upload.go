@@ -85,15 +85,17 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 	return u.FinishMultipartUpload(state)
 }
 
-//MPutWithEncryptFile 加密并分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行加密和分片上传，上传的方式是同步一片一片的加密再上传。
+//MPutEncryptedFile 加密并分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行加密和分片上传，上传的方式是同步一片一片的加密再上传。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
 //大于 100M 的加密文件推荐使用本接口上传。
-func (u *UFileRequest) MPutWithEncryptFile(filePath, keyName, mimeType string) error {
-	//根据已加密的文件大小初始化Crypto
-
-	if u.Crypto == nil {
+func (u *UFileRequest) MPutEncryptedFile(filePath, keyName, mimeType string) error {
+	if u.CryptoKey == nil {
 		return errors.New("客户端加密上传必须要提供加密密钥")
+	}
+	Crypto, err := utils.NewCrypto(u.CryptoKey, 0) //根据密钥，初始化Crypto
+	if err != nil {
+		return err
 	}
 
 	file, err := openFile(filePath)
@@ -111,11 +113,7 @@ func (u *UFileRequest) MPutWithEncryptFile(filePath, keyName, mimeType string) e
 	}
 
 	chunk := make([]byte, state.BlkSize)
-	Crypto, err := utils.NewCrypto(u.Crypto.Key) //根据密钥，初始化Crypto
 	var pos int
-	if err != nil {
-		return err
-	}
 	for {
 		bytesRead, fileErr := file.Read(chunk)
 		if fileErr == io.EOF || bytesRead == 0 { //后面直接读到了结尾
@@ -216,18 +214,18 @@ func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int)
 	return u.FinishMultipartUpload(state)
 }
 
-//AsyncMPutWithEncryptFile 加密并异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行加密和分片上传，上传的方式是使用异步的方式同时加密并传多个分片的块。
+//AsyncMPutEncryptedFile 加密并异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行加密和分片上传，上传的方式是使用异步的方式同时加密并传多个分片的块。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
 //大于 100M 的文件推荐使用本接口上传。
 //同时并发上传的分片数量为10
-func (u *UFileRequest) AsyncMPutWithEncryptFile(filePath, keyName, mimeType string) error {
-	return u.AsyncUploadWithEncryptFile(filePath, keyName, mimeType, 10)
+func (u *UFileRequest) AsyncMPutEncryptedFile(filePath, keyName, mimeType string) error {
+	return u.AsyncUploadEncryptedFile(filePath, keyName, mimeType, 10)
 }
 
-//AsyncUploadWithEncryptFile AsyncMPutWithEncryptFile 的升级版, jobs 表示同时并发的数量。
-func (u *UFileRequest) AsyncUploadWithEncryptFile(filePath, keyName, mimeType string, jobs int) error {
-	if u.Crypto == nil {
+//AsyncUploadEncryptedFile AsyncMPutEncryptedFile 的升级版, jobs 表示同时并发的数量。
+func (u *UFileRequest) AsyncUploadEncryptedFile(filePath, keyName, mimeType string, jobs int) error {
+	if u.CryptoKey == nil {
 		return errors.New("客户端加密上传必须要提供加密密钥")
 	}
 
@@ -275,7 +273,7 @@ func (u *UFileRequest) AsyncUploadWithEncryptFile(filePath, keyName, mimeType st
 			bytesRead, _ := file.ReadAt(chunk, offset)
 
 			//根据分片大小和分片序号初始化Crypto
-			Crypto, err := utils.NewCrypto_2(u.Crypto.Key, uint64(pos)*uint64(size))
+			Crypto, err := utils.NewCrypto(u.CryptoKey, uint64(pos)*uint64(size))
 			if err != nil {
 				concurrentChan <- err
 				return

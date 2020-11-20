@@ -466,15 +466,20 @@ func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName strin
 	return err
 }
 
-//PutWithCryptoFile 文件客户端加密上传
+//PutEncryptedFile 文件客户端加密上传
 //进行客户端加密上传时，需要用户提供加解密密钥，详情见配置文件相关文档
 //本SDK支持加密算法AES-CTR，如有其它加密算法需求，需自行实现加解密方法
 //mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
-func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) error {
+func (u *UFileRequest) PutEncryptedFile(filePath, keyName, mimeType string) error {
 
-	if u.Crypto == nil {
+	if u.CryptoKey == nil {
 		return errors.New("客户端加密上传必须要提供加密密钥")
+	}
+
+	Crypto, err := utils.NewCrypto(u.CryptoKey, 0)
+	if err != nil {
+		return err
 	}
 
 	reqURL := u.genFileURL(keyName)
@@ -489,7 +494,7 @@ func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) er
 		return err
 	}
 
-	b := u.Crypto.XOR(plaintext) //加密
+	b := Crypto.XOR(plaintext) //加密
 
 	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
 	if err != nil {
@@ -513,14 +518,14 @@ func (u *UFileRequest) PutWithEncryptFile(filePath, keyName, mimeType string) er
 	return u.request(req)
 }
 
-//DownloadWithDecryptFile 文件客户端加密下载接口，这里只能用来下载小文件，建议使用 DownloadLargeFileWithDecryptFile 来下载加密大文件
+//DownloadEncryptedFile 文件客户端加密下载接口，这里只能用来下载小文件，建议使用 DownloadLargeEncryptedFile 来下载加密大文件
 //进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
-func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string) error {
-	if u.Crypto == nil {
+func (u *UFileRequest) DownloadEncryptedFile(writer io.Writer, keyName string) error {
+	if u.CryptoKey == nil {
 		return errors.New("客户端加密下载必须要提供加密密钥")
 	}
 
-	Crypto, err := utils.NewCrypto(u.Crypto.Key)
+	Crypto, err := utils.NewCrypto(u.CryptoKey, 0)
 	if err != nil {
 		return err
 	}
@@ -546,11 +551,15 @@ func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string)
 	return nil
 }
 
-//DownloadLargeFileWithDecryptFile 客户端加密下载接口,对下载大文件比较友好；支持流式下载
+//DownloadLargeEncryptedFile 客户端加密下载接口,对下载大文件比较友好；支持流式下载
 //进行客户端加密下载时，需要用户提供加解密密钥，详情见配置文件相关文档
-func (u *UFileRequest) DownloadLargeFileWithDecryptFile(writer io.Writer, keyName string) error {
-	if u.Crypto == nil {
+func (u *UFileRequest) DownloadLargeEncryptedFile(writer io.Writer, keyName string) error {
+	if u.CryptoKey == nil {
 		return errors.New("客户端加密下载必须要提供加密密钥")
+	}
+	Crypto, err := utils.NewCrypto(u.CryptoKey, 0) //根据密钥初始化Crypto
+	if err != nil {
+		return err
 	}
 
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
@@ -580,38 +589,32 @@ func (u *UFileRequest) DownloadLargeFileWithDecryptFile(writer io.Writer, keyNam
 	}
 
 	chunk := make([]byte, blkSIZE) //利用缓冲区进行解密，不用生成临时文件
-	readsize := 0
-	tmpRead := -1
-	Crypto, err := utils.NewCrypto(u.Crypto.Key) //根据密钥初始化Crypto
-	if err != nil {
-		return err
-	}
 	for {
-		bytesRead, fileErr := resp.Body.Read(chunk)
-
 		//因为ctr加密明文的分组长度为16，所以一次解密的长度需要是16的倍数
 		//而这里一次读入无法确定
 		//因此必须多次读入，直到读满缓冲区为止
+		var bytesRead int
 		for bytesRead < blkSIZE {
 			tmpChunk := make([]byte, blkSIZE-bytesRead)
-			tmpRead, fileErr = resp.Body.Read(tmpChunk)
-
-			//这里用||的话，下载大文件时会漏读内容
-			if tmpRead == 0 && fileErr == io.EOF {
-				break
-			}
+			tmpRead, fileErr := resp.Body.Read(tmpChunk)
 
 			chunk = append(chunk[:bytesRead], tmpChunk[:tmpRead]...)
 			bytesRead += tmpRead
+
+			if fileErr == io.EOF {
+				break
+			}
+			if fileErr != nil {
+				return fileErr
+			}
 		}
+
 		if bytesRead == 0 {
 			break
 		}
 
 		plainBlk := Crypto.XOR(chunk[:bytesRead]) //解密
 		writer.Write(plainBlk)
-
-		readsize += bytesRead //记录已加密数据长度
 
 	}
 

@@ -114,7 +114,7 @@ func TestAESCTR(t *testing.T) {
 		key, _ := hex.DecodeString(test.key)
 		plaintext, _ := hex.DecodeString(test.plaintext)
 
-		crypto, err := NewCrypto(key)
+		crypto, err := NewCrypto(key, 0)
 		if err != nil {
 			t.Errorf("#%d: NewCrypto err:%s", i, err.Error())
 			continue
@@ -127,7 +127,7 @@ func TestAESCTR(t *testing.T) {
 		}
 
 		//测试解密
-		crypto_2, err := NewCrypto(key)
+		crypto_2, err := NewCrypto(key, 0)
 		if err != nil {
 			t.Errorf("#%d: NewCrypto : %s", i, err.Error())
 			continue
@@ -140,7 +140,7 @@ func TestAESCTR(t *testing.T) {
 		}
 
 		//测试同一个crypto的分段加密
-		crypto_3, err := NewCrypto(key)
+		crypto_3, err := NewCrypto(key, 0)
 		if err != nil {
 			t.Errorf("#%d: NewCrypto : %s", i, err.Error())
 			continue
@@ -166,7 +166,7 @@ func TestAESCTR(t *testing.T) {
 			if err != nil {
 				break
 			}
-			crypto_4, err := NewCrypto_2(key, uint64(cryptoSize))
+			crypto_4, err := NewCrypto(key, uint64(cryptoSize))
 			if err != nil {
 				t.Errorf("#%d: NewCrypto : %s", i, err.Error())
 				break
@@ -189,7 +189,7 @@ func benchmarkAESCTREncrypt(b *testing.B, buf []byte) {
 
 	var key [16]byte
 
-	crypto, err := NewCrypto(key[:])
+	crypto, err := NewCrypto(key[:], 0)
 	if err != nil {
 		b.Errorf("NewCrypto: %v", err)
 	}
@@ -206,7 +206,7 @@ func benchmarkAESCTRDecrypt(b *testing.B, buf []byte) {
 
 	var key [16]byte
 
-	crypto, err := NewCrypto(key[:])
+	crypto, err := NewCrypto(key[:], 0)
 	if err != nil {
 		b.Errorf("NewCrypto: %v", err)
 	}

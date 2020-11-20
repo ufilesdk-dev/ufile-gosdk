@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ufilesdk-dev/ufile-gosdk/utils"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -29,7 +28,7 @@ type UFileRequest struct {
 	Client        *http.Client
 	Context       context.Context
 	baseURL       *url.URL
-	Crypto        *utils.Crypto
+	CryptoKey     []byte
 	RequestHeader http.Header
 
 	LastResponseStatus int
@@ -58,13 +57,8 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 		req.baseURL.Scheme = "http"
 	}
 	if config.CryptoKey != "" {
-		cryptoKey := []byte(config.CryptoKey)
-		var err error
-		req.Crypto, err = utils.NewCrypto(cryptoKey)
-		if err != nil {
-			return nil, err
-		}
-	} 
+		req.CryptoKey = []byte(config.CryptoKey)
+	}
 	return req, nil
 }
 

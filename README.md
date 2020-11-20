@@ -35,7 +35,7 @@
 [Put 带回调上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutFileWithPolicy)
 [同步分片上传-带回调](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.MPutWithPolicy)，
 [异步分片上传-带回调](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.AsyncMPutWithPolicy)  
-[文件客户端加密上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutWithEncryptFile), [文件客户端解密下载](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.DownloadWithDecryptFile)
+[文件客户端加密上传](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.PutEncryptedFile), [文件客户端解密下载](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.DownloadEncryptedFile)
 
 ### Bucket 操作相关功能
 [创建 bucket](https://godoc.org/pkg/github.com/ufilesdk-dev/ufile-gosdk/#UFileRequest.CreateBucket)  
@@ -83,7 +83,7 @@ if err != nil {
 }
 log.Println("正在加密上传文件。。。。")
 
-err = req.PutWithEncryptFile(uploadFile, remoteFileKey, "")
+err = req.PutEncryptedFile(uploadFile, remoteFileKey, "")
 if err != nil {
     log.Println("文件上传失败，失败原因：", err.Error())
     return
