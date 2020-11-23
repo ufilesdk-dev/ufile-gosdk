@@ -471,6 +471,7 @@ func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName strin
 //本SDK支持加密算法AES-CTR，如有其它加密算法需求，需自行实现加解密方法
 //mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
+//小于 100M 的文件推荐使用本接口进行加密上传。
 func (u *UFileRequest) PutEncryptedFile(filePath, keyName, mimeType string) error {
 
 	if u.CryptoKey == nil {
