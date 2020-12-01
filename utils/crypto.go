@@ -3,7 +3,6 @@ package utils
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"encoding/binary"
 )
 
 //Crypto模块包含了客户端加解密相关内容
@@ -32,15 +31,29 @@ func NewCrypto(key []byte, startPos uint64) (cry *Crypto, err error) {
 	//创建分组模式
 	nonce := []byte(defaultNonce)
 
+	//异步分片上传，根据分片大小和序号修改IV
 	if startPos != 0 {
 		ivLen := len(nonce)
-		iv := binary.BigEndian.Uint64(nonce[ivLen-8:]) + startPos/uint64(ivLen) //字节切片，最后8位上限是256^8 = 2^64 ,+1代表着一个4M的切片，所以这里最大加密文件上限为2^64 *4M = 2^46 TB，远超上传上限
-		binary.BigEndian.PutUint64(nonce[ivLen-8:], iv)
+		nonce = editIV(nonce, startPos/uint64(ivLen))
 	}
 
 	stream := cipher.NewCTR(c, nonce)
 
 	return &Crypto{key, stream, nonce}, nil
+}
+
+//修改IV
+func editIV(nonce []byte, startPos uint64) []byte {
+	for startPos > 0 {
+		startPos--
+		for i := len(nonce) - 1; i >= 0; i-- {
+			nonce[i]++
+			if nonce[i] != 0 {
+				break
+			}
+		}
+	}
+	return nonce
 }
 
 //实现数据加解密
