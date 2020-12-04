@@ -8,11 +8,13 @@ import (
 	"os"
 
 	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
+	"github.com/ufilesdk-dev/ufile-gosdk/example/helper"
 )
 
 const (
-	uploadFile = "./plaintext.txt"
-	configFile = "config.json"
+	SmallFilePath = "./FakeSmallFile.txt"
+	LargeFilePath = "./FakeLargeFile.txt"
+	configFile    = "config.json"
 
 	remoteFileKey = "ciphertext.txt"
 	saveAsName    = "./download.txt"
@@ -63,7 +65,7 @@ func PutEncryptedFileExample() {
 	log.Println("正在加密上传文件。。。。")
 
 	//文件客户端加密上传
-	err = req.PutEncryptedFile(uploadFile, remoteFileKey, "")
+	err = req.PutEncryptedFile(SmallFilePath, remoteFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return
@@ -83,7 +85,7 @@ func PutEncryptedFileExample() {
 		log.Println("下载文件出错，出错信息为：", err.Error())
 	}
 
-	ok, err := compareFileMd5()
+	ok, err := compareFileMd5(SmallFilePath, saveAsName)
 	if err != nil {
 		log.Println("客户端加密：比较文件Md5出错，出错信息为：", err.Error())
 	}
@@ -92,6 +94,7 @@ func PutEncryptedFileExample() {
 	} else {
 		log.Println("客户端加密：文件客户端加密上传下载成功")
 	}
+	log.Println()
 }
 
 func MPutEncryptedFileExample() {
@@ -108,7 +111,7 @@ func MPutEncryptedFileExample() {
 	log.Println("正在同步分片上传加密文件。。。。")
 
 	//文件客户端加密同步分片上传
-	err = req.MPutEncryptedFile(uploadFile, remoteFileKey, "")
+	err = req.MPutEncryptedFile(LargeFilePath, remoteFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return
@@ -128,7 +131,7 @@ func MPutEncryptedFileExample() {
 		log.Println("加密下载大文件出错，出错信息为：", err.Error())
 	}
 
-	ok, err := compareFileMd5()
+	ok, err := compareFileMd5(LargeFilePath, saveAsName)
 	if err != nil {
 		log.Println("客户端加密：比较文件Md5出错，出错信息为：", err.Error())
 	}
@@ -155,7 +158,7 @@ func AsyncMPutEncryptedFile() {
 	log.Println("正在异步分片上传加密文件。。。。")
 
 	//异步分片上传加密文件
-	err = req.AsyncMPutEncryptedFile(uploadFile, remoteFileKey, "")
+	err = req.AsyncMPutEncryptedFile(LargeFilePath, remoteFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return
@@ -175,7 +178,7 @@ func AsyncMPutEncryptedFile() {
 		log.Println("下载大文件出错，出错信息为：", err.Error())
 	}
 
-	ok, err := compareFileMd5()
+	ok, err := compareFileMd5(LargeFilePath, saveAsName)
 	if err != nil {
 		log.Println("客户端加密：比较文件Md5出错，出错信息为：", err.Error())
 	}
@@ -184,16 +187,25 @@ func AsyncMPutEncryptedFile() {
 	} else {
 		log.Println("客户端加密：文件客户端加密异步分片上传下载成功")
 	}
-	log.Println()
-
 }
 func main() {
+	//如果上传文件不存在，就生成文件以测试
+	if _, err := os.Stat(SmallFilePath); os.IsNotExist(err) {
+		helper.GenerateFakefile(SmallFilePath, helper.FakeSmallFileSize)
+		log.Println("测试小文件已生成")
+	}
+	if _, err := os.Stat(LargeFilePath); os.IsNotExist(err) {
+		helper.GenerateFakefile(LargeFilePath, helper.FakeBigFileSize)
+		log.Println("测试大文件已生成")
+
+	}
+
 	PutEncryptedFileExample()
-	MMPutEncryptedFileExample()
+	MPutEncryptedFileExample()
 	AsyncMPutEncryptedFile()
 }
 
-func compareFileMd5() (bool, error) {
+func compareFileMd5(uploadFile, saveAsName string) (bool, error) {
 	beforePutFile, err := ioutil.ReadFile(uploadFile)
 	if err != nil {
 		return false, err
