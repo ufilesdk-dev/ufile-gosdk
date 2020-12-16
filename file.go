@@ -143,6 +143,22 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	}
 	h.Add("Content-Type", mimeType)
 
+	var md5Str string
+	if u.verifyUploadMD5 {
+		f, err := openFile(filePath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		b, err := ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
+		md5Str = fmt.Sprintf("%x", md5.Sum(b))
+		fmt.Println("md5Str:", md5Str)
+		h.Add("Content-MD5", md5Str)
+	}
+
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
 
 	boundry := makeBoundry()
@@ -150,14 +166,18 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	if err != nil {
 		return err
 	}
-	//lastline 一定要写，否则后端解析不到。
-	lastline := fmt.Sprintf("\r\n--%s--\r\n", boundry)
-	body.Write([]byte(lastline))
+	//lastLine 一定要写，否则后端解析不到。
+	lastLine := fmt.Sprintf("\r\n--%s--\r\n", boundry)
+	body.Write([]byte(lastLine))
 
 	reqURL := u.genFileURL("")
 	req, err := http.NewRequest("POST", reqURL, body)
 	if err != nil {
 		return err
+	}
+
+	if u.verifyUploadMD5 {
+		req.Header.Add("Content-MD5", md5Str)
 	}
 
 	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundry)
