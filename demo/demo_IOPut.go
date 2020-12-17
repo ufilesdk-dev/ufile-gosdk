@@ -9,40 +9,38 @@ import (
 
 const (
 	ConfigFile = "./config.json"
-	FilePath = "IOMutipartAsyncUpload.txt"
-	KeyName = "IOMutipartAsyncUpload.txt"
-	MimeType = ""
+	FilePath = "./FakeSmallFile.txt"
+	KeyName = "PutKeyName"
 )
 
 func main() {
 	if _, err := os.Stat(FilePath); os.IsNotExist(err) {
-		helper.GenerateFakefile(FilePath, helper.FakeBigFileSize)
+		helper.GenerateFakefile(FilePath, helper.FakeSmallFileSize)
 	}
 
-	// 加载配置，创建请求
-	config, err := ufsdk.LoadConfig(ConfigFile)
+	config, err := ufsdk.LoadConfig("./config.json")
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 	req, err := ufsdk.NewFileRequest(config, nil)
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
-
-	// 异步分片上传本地文件
+	// 流式上传本地小文件
 	f, err := os.Open(FilePath)
 	if err != nil {
 		panic(err.Error())
 	}
-	err = req.IOMutipartAsyncUpload(f, KeyName, MimeType)
+	err = req.IOPut(f, KeyName, "")
 	if err != nil {
-		log.Fatalf("%s\n", err.Error())
+		log.Fatalf("%s\n", req.DumpResponse(true))
 	}
-	log.Println("文件上传成功!!")
+	log.Println("文件上传成功")
 
 	err = req.HeadFile(KeyName)
 	if err != nil {
 		log.Fatalf("%s\n", err.Error())
 	}
 	log.Printf(" %s", req.LastResponseHeader)
+
 }
