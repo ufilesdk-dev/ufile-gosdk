@@ -1,8 +1,8 @@
+
 # UCloud 对象存储 SDK <a href="https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk"><img src="https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk?status.svg" alt="GoDoc"></a>
 > Modules are interface and implementation.  
 > The best modules are where interface is much simpler than implementation.  
 > **By: John Ousterhout**
-
 
 Table of Contents
 =================
@@ -10,7 +10,6 @@ Table of Contents
 * [概述](#概述)
 	* [US3 对象存储基本概念](#US3%20对象存储基本概念)
 	* [签名](#签名)
-	* [文件结构说明](#文件结构说明)
 * [快速使用](#快速使用)
     * [下载安装](#下载安装)
 		* [环境要求](#环境要求)
@@ -23,9 +22,9 @@ Table of Contents
         * [普通上传](#普通上传)
         * [表单上传](#表单上传)
         * [秒传](#秒传)
+		* [流式上传](#流式上传)
         * [分片上传](#分片上传)
 		* [上传回调](#上传回调)
-		* [加密上传](#加密上传)
         * [文件下载](#文件下载)
         * [查询文件基本信息](#查询文件基本信息)
         * [删除文件](#删除文件)
@@ -36,8 +35,8 @@ Table of Contents
         * [文件重命名](#文件重命名)
 		* [前缀列表查询](#前缀列表查询)
         * [获取目录文件列表](#获取目录文件列表)
-   * [文档说明](#文档说明)
-   * [联系我们](#联系我们)
+* [文档说明](#文档说明)
+* [联系我们](#联系我们)
 
 # 概述
 
@@ -47,15 +46,7 @@ Table of Contents
 
 ## 签名 
 
-本 SDK 接口是基于 HTTP 的，为了连接的安全性，US3 使用 HMAC SHA1 对每个连接进行签名校验。使用本 SDK 可以忽略签名相关的算法过程，只要把公私钥写入到配置文件里面（注意不要传到版本控制里面），读取并传给 UFileRequest 里面的 New 方法即可。
-签名相关的算法与详细实现请见 [Auth 模块](https://github.com/ufilesdk-dev/ufile-gosdk/blob/master/auth.go)
-
-## 文件结构说明
-
-- us3文件夹: SDK的具体实现
-- test_file文件夹: 测试文件
-- demos文件夹: 示例代码
-- demo.go: 测试代码
+本 SDK 接口是基于 HTTP 的，为了连接的安全性，US3 使用 HMAC SHA1 对每个连接进行签名校验。使用本 SDK 可以忽略签名相关的算法过程，只要把公私钥写入到配置文件里面，读取并传给 UFileRequest 里面的 New 方法即可。签名相关的算法与详细实现请见 [Auth 模块](https://github.com/ufilesdk-dev/ufile-gosdk/blob/master/auth.go)
 
 # 快速使用
 
@@ -85,10 +76,7 @@ Table of Contents
     "file_host":"",
 
     "说明3":"verifyUploadMD5 用于数据完整性校验，默认不开启，若要开启请置为true",
-    "verifyUploadMD5": false,
-
-    "说明4":"crypto_key是客户端文件加解密的密钥，请务必妥善保管，丢失后将无法解密文件，长度限定为16,24或32",
-    "crypto_key":""
+    "verifyUploadMD5": false
 }
 ```
 
@@ -267,6 +255,45 @@ if err != nil {
 
 [回到目录](#table-of-contents)
 
+<a name="流式上传"></a>
+### 流式上传
+
+- demo程序
+
+```go
+if err != nil {
+    log.Fatal(err.Error())
+}
+req, err := ufsdk.NewFileRequest(config, nil)
+if err != nil {
+    log.Fatal(err.Error())
+}
+// 流式上传本地小文件
+f, err := os.Open("FilePath")
+if err != nil {
+    panic(err.Error())
+}
+err = req.IOPut(f, "KeyName", "")
+f.Close()
+if err != nil {
+    log.Fatalf("%s\n", req.DumpResponse(true))
+}
+
+// 流式上传大文件
+f1, err := os.Open("FilePath1")
+if err != nil {
+    panic(err.Error())
+}
+err = req.IOMutipartAsyncUpload(f1, "KeyName", "")
+f1.Close()
+if err != nil {
+    log.Fatalf("%s\n", req.DumpResponse(true))
+}
+```
+
+[回到目录](#table-of-contents)
+
+
 <a name="分片上传"></a>
 ### 分片上传
 
@@ -325,17 +352,6 @@ err = req.AsyncUploadWithPolicy("FilePath", "KeyName", "MimeType", jobs, "Policy
 if err != nil {
 	log.Println("DumpResponse：", string(req.DumpResponse(true)))
 }
-```
-
-[回到目录](#table-of-contents)
-
-<a name="加密上传"></a>
-### 加密上传
-
-- demo程序
-
-```go
-
 ```
 
 [回到目录](#table-of-contents)
