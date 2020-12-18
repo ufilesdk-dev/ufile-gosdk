@@ -25,7 +25,6 @@ type Config struct {
 	PrivateKey      string `json:"private_key"`
 	BucketName      string `json:"bucket_name"`
 	FileHost        string `json:"file_host"`
-	BucketHost      string `json:"bucket_host"`
 	VerifyUploadMD5 bool   `json:"verfiy_upload_md5"`
 }
 

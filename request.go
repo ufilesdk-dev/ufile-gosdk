@@ -76,11 +76,7 @@ func NewFileRequestWithHeader(config *Config, header http.Header, client *http.C
 //注意：不要拿它去调用文件管理的 request，我文件管理和 bucket 管理接口放到一个 request 里面的目的就是让接口更统一，代码更清晰，简洁。
 //config 参数里面包含了公私钥，以及其他必填的参数。详情见 config 相关文档。
 func NewBucketRequest(config *Config, client *http.Client) (*UFileRequest, error) {
-	config.BucketHost = strings.TrimSpace(config.BucketHost)
-	if config.BucketHost == "" {
-		return nil, errors.New("管理 Bucket 必须要提供对应的 API host")
-	}
-	req := newRequest(config.PublicKey, config.PrivateKey, "", config.BucketHost, client)
+	req := newRequest(config.PublicKey, config.PrivateKey, "", "api.ucloud.cn", client)
 	req.verifyUploadMD5 = config.VerifyUploadMD5
 	if req.baseURL.Scheme == "" {
 		req.baseURL.Scheme = "http"
