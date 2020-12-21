@@ -506,6 +506,11 @@ func (u *UFileRequest) PutEncryptedFile(filePath, keyName, mimeType string) erro
 		mimeType = getMimeType(file)
 	}
 	req.Header.Add("Content-Type", mimeType)
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
+	}
 
 	if u.verifyUploadMD5 {
 		md5Str := fmt.Sprintf("%x", md5.Sum(b))
