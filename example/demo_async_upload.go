@@ -1,57 +1,44 @@
 package main
 
 import (
-	"flag"
+	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 	"log"
-	"os"
-
-	ufsdk "github.com/kuixiao/ufile-gosdk"
-	"github.com/kuixiao/ufile-gosdk/example/helper"
 )
 
-var (
-	key    = flag.String("k", "", "upload file key.")
-	path   = flag.String("p", "", "upload file path.")
-	thread = flag.Int("t", 0, "upload concurrent thread count.")
-	config = flag.String("c", "", "config file")
-)
 const (
-	uploadFile    = "./FakeBigFile.txt"
-	configFile    = "config.json"
-	remoteFileKey = "AsyncUpload.txt"
+	ConfigFile = "./config.json"
+	FilePath = "mongo.zip"
+	KeyName = "mongo.zip"
+	MimeType = ""
+	Jobs = 20
 )
 
 func main() {
-	log.SetFlags(log.Lshortfile)
-	config, err := ufsdk.LoadConfig(configFile)
+
+	// 加载配置，创建请求
+	config, err := ufsdk.LoadConfig(ConfigFile)
 	if err != nil {
 		panic(err.Error())
 	}
-
 	req, err := ufsdk.NewFileRequest(config, nil)
 	if err != nil {
 		panic(err.Error())
 	}
-	log.Println("正在上传文件。。。。")
 
-	if _, err := os.Stat(uploadFile); os.IsNotExist(err) {
-		helper.GenerateFakefile(uploadFile, helper.FakeBigFileSize)
-	}
-
-	err = req.AsyncUpload(uploadFile, remoteFileKey, "", *thread)
+	// 异步分片上传本地文件
+	err = req.AsyncUpload(FilePath,  KeyName, MimeType, Jobs)
 	if err != nil {
-		log.Println("文件上传失败，失败原因：", err.Error())
-		return
+		log.Fatalf("%s\n", err.Error())
 	}
 	log.Println("文件上传成功。")
 
-	checkEtag := req.CompareFileEtag(remoteFileKey, uploadFile)
-	if !checkEtag {
+	ok := req.CompareFileEtag(KeyName, FilePath)
+	if !ok {
 		log.Fatalln("CompareFileEtag 失败。")
 	}
 	log.Println("CompareFileEtag 成功。")
 
-	err = req.DeleteFile(remoteFileKey)
+	err = req.DeleteFile(KeyName)
 	if err != nil {
 		log.Fatalln("文件删除失败。")
 	}

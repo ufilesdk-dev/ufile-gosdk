@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	uploadFile    = "./FakeBigFile.txt"
-	configFile    = "config.json"
+	FilePath    = "./FakeSmallFile.txt"
+	ConfigFile    = "config.json"
 	remoteStFileKey = "test_standard1.txt"
 	remoteIaFileKey = "test_ia2.txt"
 	remoteArFileKey = "test_archive3.txt"
@@ -16,7 +16,7 @@ const (
 
 func main() {
 	log.SetFlags(log.Lshortfile)
-	config, err := ufsdk.LoadConfig(configFile)
+	config, err := ufsdk.LoadConfig(ConfigFile)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -31,7 +31,7 @@ func main() {
 
 	//1、上传标准存储类型文件
 	log.Println("正在上传标准存储类型文件。。。。")
-	err = req.MPut(uploadFile, remoteStFileKey, "")
+	err = req.MPut(FilePath, remoteStFileKey, "")
 	if err != nil {
 		log.Println("文件上传失败，失败原因：", err.Error())
 		return
@@ -41,7 +41,7 @@ func main() {
 	//2、上传低频存储类型文件
 	header.Set("X-Ufile-Storage-Class", "IA")
 	log.Println("正在上传低频存储类型文件。。。。")
-	err = req.MPut(uploadFile, remoteIaFileKey, "")
+	err = req.MPut(FilePath, remoteIaFileKey, "")
 	if err != nil {
 		log.Fatalln("文件上传失败，失败原因：", err.Error())
 	}
@@ -50,7 +50,7 @@ func main() {
 	//3、上传归档存储类型文件
 	header.Set("X-Ufile-Storage-Class", "ARCHIVE")
 	log.Println("正在上传归档存储类型文件。。。。")
-	err = req.MPut(uploadFile, remoteArFileKey, "")
+	err = req.MPut(FilePath, remoteArFileKey, "")
 	if err != nil {
 		log.Fatalln("文件上传失败，失败原因：", err.Error())
 	}

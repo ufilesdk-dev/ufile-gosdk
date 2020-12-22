@@ -67,8 +67,11 @@ func GetFileMimeType(path string) string {
 
 func getMimeType(f *os.File) string {
 	buffer := make([]byte, 512)
-
-	_, err := f.Read(buffer)
+	_, err := f.Seek(0, 0)
+	if err != nil {
+		return "plain/text"
+	}
+	_, err = f.Read(buffer)
 	defer func() { f.Seek(0, 0) }() //revert file's seek
 	if err != nil {
 		return "plain/text"

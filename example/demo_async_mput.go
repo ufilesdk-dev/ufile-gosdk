@@ -1,21 +1,21 @@
 package main
 
 import (
-	ufsdk "github.com/kuixiao/ufile-gosdk"
-	"github.com/kuixiao/ufile-gosdk/example/helper"
+	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
+	"github.com/ufilesdk-dev/ufile-gosdk/example/helper"
 	"log"
 	"os"
 )
 
 const (
-	uploadFile	  = "./FakeBigFile.txt"
-	configFile    = "config.json"
-	remoteFileKey = "AsyncMPut.txt"
+	ConfigFile = "./config.json"
+	FilePath = "mongo.zip"
+	KeyName = "mongo.zip"
+	MimeType = ""
 )
 
 func main() {
-	log.SetFlags(log.Lshortfile)
-	config, err := ufsdk.LoadConfig(configFile)
+	config, err := ufsdk.LoadConfig(ConfigFile)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -26,23 +26,23 @@ func main() {
 	}
 	log.Println("正在上传文件。。。。")
 
-	if _, err := os.Stat(uploadFile); os.IsNotExist(err) {
-		helper.GenerateFakefile(uploadFile, helper.FakeBigFileSize)
+	if _, err := os.Stat(FilePath); os.IsNotExist(err) {
+		helper.GenerateFakefile(FilePath, helper.FakeBigFileSize)
 	}
 
-	err = req.AsyncMPut(uploadFile, remoteFileKey, "")
+	err = req.AsyncMPut(FilePath, KeyName, MimeType)
 	if err != nil {
 		log.Fatalln("文件上传失败，失败原因：", err.Error())
 	}
 	log.Println("文件上传成功。")
 
-	checkEtag := req.CompareFileEtag(remoteFileKey, uploadFile)
+	checkEtag := req.CompareFileEtag(KeyName, FilePath)
 	if !checkEtag {
 		log.Fatalln("CompareFileEtag 失败。")
 	}
 	log.Println("CompareFileEtag 成功。")
 
-	err = req.DeleteFile(remoteFileKey)
+	err = req.DeleteFile(KeyName)
 	if err != nil {
 		log.Fatalln("文件删除失败。")
 	}

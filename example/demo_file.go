@@ -11,12 +11,9 @@ import (
 
 const (
 	putUpload = iota
-	putUpload_withPolicy
 	postUpload
 	mput
-	mput_withPolicy
 	asyncmput
-	asyncmput_withPolicy
 )
 
 var srcBucketName string
@@ -63,29 +60,18 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 		log.Println("正在使用PUT接口上传文件...")
 		err = req.PutFile(filePath, keyName, "")
 		break
-	case putUpload_withPolicy:
-		log.Println("正在使用PUT接口上传文件...")
-		err = req.PutFileWithPolicy(filePath, keyName, "", "{\"callbackUrl\":\"\", \"callbackBody\":\"\"}")
-		break
 	case postUpload:
 		log.Println("正在使用 POST 接口上传文件...")
 		err = req.PostFile(filePath, keyName, "")
-		break;
+		break
 	case mput:
 		log.Println("正在使用同步分片上传接口上传文件...")
 		err = req.MPut(filePath, keyName, "")
-                break;
-	case mput_withPolicy:
-		log.Println("正在使用Mput+policy接口上传文件...")
-		err = req.MPutWithPolicy(filePath, keyName, "", "{\"callbackUrl\" : \"http://inner.umedia.ucloud.com.cn/CreateUmediaTask\",\"callbackBody\" : \"url=http://demo.ufile.ucloud.cn/test.mp4& patten_name=mypolicy\"}")
-                break;
+		break
 	case asyncmput:
 		log.Println("正在使用异步分片上传接口上传文件...")
 		err = req.AsyncMPut(filePath, keyName, "")
-                break;
-	case asyncmput_withPolicy:
-		log.Println("正在使用异步分片+policy上传接口上传文件...")
-		err = req.AsyncMPutWithPolicy(filePath, keyName, "", "{\"callbackUrl\" : \"http://inner.umedia.ucloud.com.cn/CreateUmediaTask\",\"callbackBody\" : \"url=http://demo.ufile.ucloud.cn/test.mp4& patten_name=mypolicy\"}")
+		break
 	}
 
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	ufsdk "github.com/kuixiao/ufile-gosdk"
+	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 )
 
 const (
@@ -12,7 +12,6 @@ const (
 	localDlFile        = "./stream-dl.png"
 	iopConfigFile      = "./config.json"
 	iopRemoteFileKey   = "picture.png"
-	iopRemoteSaveasKey = "picture-saveas.png"
 )
 
 func main() {
@@ -28,8 +27,8 @@ func main() {
 	}
 	log.Println("正在上传文件...")
 
-	//构建iop命令，缩放为原图50%，并持久化为newfile.jpg
-	iopcmdString := "iopcmd=thumbnail&type=1&scale=50|saveAs=" + iopRemoteSaveasKey
+	//构建iop命令，缩放为原图50%
+	iopcmdString := "iopcmd=thumbnail&type=1&scale=50"
 	// 通过直接指定iop字符串执行上传iop, iopcmdString为自己构建的iop命令
 	err = req.PutFileWithIopString(localUpFile, iopRemoteFileKey, "", iopcmdString)
 	if err != nil {
@@ -37,13 +36,7 @@ func main() {
 	} else {
 		log.Println("iop上传文件成功")
 	}
-	// 获取iop持久化之后的文件基本信息
-	err = req.HeadFile(iopRemoteSaveasKey)
-	if err != nil {
-		log.Printf("获取文件基本信息失败：%s\n", req.DumpResponse(true))
-	} else {
-		log.Printf("获取文件基本信息成功：%s\n", req.LastResponseHeader)
-	}
+
 
 	log.Println("正在下载文件...")
 	file, err := os.OpenFile(localDlFile, os.O_CREATE|os.O_WRONLY, 0755)

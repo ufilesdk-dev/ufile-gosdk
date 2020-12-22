@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	ufsdk "github.com/kuixiao/ufile-gosdk"
+	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 )
 
 const (
