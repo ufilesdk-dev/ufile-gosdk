@@ -490,6 +490,10 @@ func (u *UFileRequest) PutEncryptedFile(filePath, keyName, mimeType string) erro
 	}
 	defer file.Close()
 
+	if mimeType == "" {
+		mimeType = getMimeType(file)
+	}
+
 	plaintext, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err
@@ -502,9 +506,6 @@ func (u *UFileRequest) PutEncryptedFile(filePath, keyName, mimeType string) erro
 		return err
 	}
 
-	if mimeType == "" {
-		mimeType = getMimeType(file)
-	}
 	req.Header.Add("Content-Type", mimeType)
 	for k, v := range u.RequestHeader {
 		for i := 0; i < len(v); i++ {
