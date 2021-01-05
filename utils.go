@@ -23,6 +23,7 @@ const (
 type Config struct {
 	PublicKey       string `json:"public_key"`
 	PrivateKey      string `json:"private_key"`
+	BucketHost		string `json:"bucket_host"`
 	BucketName      string `json:"bucket_name"`
 	FileHost        string `json:"file_host"`
 	VerifyUploadMD5 bool   `json:"verfiy_upload_md5"`
