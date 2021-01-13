@@ -9,15 +9,16 @@ import (
 )
 
 const (
-	uploadFile    = "./FakeBigFile.txt"
-	configFile    = "config.json"
-	remoteFileKey = "test.txt"
+	ConfigFile = "./config.json"
+	FilePath = "mongo.zip"
+	KeyName = "mongo.zip"
+	MimeType = ""
 )
 
 func main() {
 	log.SetFlags(log.Lshortfile)
 
-	config, err := ufsdk.LoadConfig(configFile)
+	config, err := ufsdk.LoadConfig(ConfigFile)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -27,15 +28,15 @@ func main() {
 		panic(err.Error())
 	}
 
-	exampeAsyncMput(req, 500*time.Millisecond)
-	exampeMput(req, 500*time.Millisecond)
+	exampleMput(req, 500*time.Millisecond)
+	exampleAsyncMput(req, 500*time.Millisecond)
 }
 
-func exampeMput(req *ufsdk.UFileRequest, timeout time.Duration) {
+func exampleMput(req *ufsdk.UFileRequest, timeout time.Duration) {
 	var cancelFunc context.CancelFunc
 	req.Context, cancelFunc = context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
-	err := req.MPut(uploadFile, remoteFileKey, "")
+	err := req.MPut(FilePath, KeyName, MimeType)
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -43,11 +44,11 @@ func exampeMput(req *ufsdk.UFileRequest, timeout time.Duration) {
 	log.Println("错误：context 异常。")
 }
 
-func exampeAsyncMput(req *ufsdk.UFileRequest, timeout time.Duration) {
+func exampleAsyncMput(req *ufsdk.UFileRequest, timeout time.Duration) {
 	var cancelFunc context.CancelFunc
 	req.Context, cancelFunc = context.WithTimeout(context.Background(), timeout)
 	defer cancelFunc()
-	err := req.AsyncMPut(uploadFile, remoteFileKey, "")
+	err := req.AsyncMPut(FilePath, KeyName, MimeType)
 	if err != nil {
 		log.Println(err.Error())
 		return

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	ufsdk "github.com/ufilesdk-dev/ufile-gosdk"
 	"github.com/ufilesdk-dev/ufile-gosdk/example/helper"
@@ -9,22 +8,16 @@ import (
 	"os"
 )
 
-var (
-	put  = flag.String("put", "", "test put io interface")
-	mput = flag.String("mput", "", "test mput io interface")
-)
-
 const (
-	PutType  = 0
-	MputType = 1
+	ConfigFile = "config.json"
+	IOPutKeyName = "PutKeyName"
+	IOMPutKeyName = "MPutKeyName"
+	MimeType = ""
 )
 
 func main() {
 	flag.Parse()
-	if *put == "" && *mput == "" {
-		flag.PrintDefaults()
-		return
-	}
+
 	log.SetFlags(log.Lshortfile)
 	if _, err := os.Stat(helper.FakeSmallFilePath); os.IsNotExist(err) {
 		helper.GenerateFakefile(helper.FakeSmallFilePath, helper.FakeSmallFileSize)
@@ -33,7 +26,7 @@ func main() {
 		helper.GenerateFakefile(helper.FakeBigFilePath, helper.FakeBigFileSize)
 	}
 
-	config, err := ufsdk.LoadConfig(helper.ConfigFile)
+	config, err := ufsdk.LoadConfig(ConfigFile)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -42,40 +35,37 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	if *put != "" {
-		err = testUpload(req, helper.FakeSmallFilePath, *put, PutType)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-	}
-	if *mput != "" {
-		err = testUpload(req, helper.FakeBigFilePath, *mput, MputType)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-	}
-	log.Println("接口测试通过。")
-}
-
-func testUpload(req *ufsdk.UFileRequest, filePath, keyName string, uploadType int) error {
-	f, err := os.Open(filePath)
+	// 流式上传本地小文件
+	f, err := os.Open(helper.FakeSmallFilePath)
 	if err != nil {
 		panic(err.Error())
 	}
-	switch uploadType {
-	case PutType:
-		err = req.IOPut(f, keyName, "")
-	case MputType:
-		err = req.IOMutipartAsyncUpload(f, keyName, "")
-	default:
-		return errors.New("wrong upload type")
-	}
+	err = req.IOPut(f, IOPutKeyName, MimeType)
 	if err != nil {
-		log.Printf("%s\n", req.DumpResponse(true))
-		return err
+		log.Fatalf("%s\n", req.DumpResponse(true))
 	}
-	if req.CompareFileEtag(keyName, filePath) == false {
-		err = errors.New("接口测试失败，上传的文件etag无法与本地文件etag匹配上。")
+	log.Println("文件上传成功")
+
+	checkEtag := req.CompareFileEtag(IOPutKeyName, helper.FakeSmallFilePath)
+	if !checkEtag {
+		log.Fatalln("CompareFileEtag 失败。")
 	}
-	return err
+	log.Println("CompareFileEtag 成功。")
+
+	//  流式分片上传本地文件
+	f1, err := os.Open(helper.FakeBigFilePath)
+	if err != nil {
+		panic(err.Error())
+	}
+	err = req.IOMutipartAsyncUpload(f1, IOMPutKeyName, MimeType)
+	if err != nil {
+		log.Fatalf("%s\n", err.Error())
+	}
+	log.Println("文件上传成功!!")
+
+	checkEtag = req.CompareFileEtag(IOMPutKeyName, helper.FakeBigFilePath)
+	if !checkEtag {
+		log.Fatalln("CompareFileEtag 失败。")
+	}
+	log.Println("CompareFileEtag 成功。")
 }
