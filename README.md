@@ -3,8 +3,6 @@
 > Modules are interface and implementation.  
 > The best modules are where interface is much simpler than implementation.  
 > **By: John Ousterhout**
->
-> [US3文档中心 Go-SDK](https://ucloud-us3.github.io/go-sdk/%E6%A6%82%E8%BF%B0.html)
 
 Table of Contents
 =================
@@ -605,4 +603,5 @@ if err != nil {
 
 > - UCloud US3 [官方网站](https://www.ucloud.cn/site/product/ufile.html)
 > - UCloud US3 [官方文档中心](https://docs.ucloud.cn/ufile/README)
+> - UCloud US3 [开发者文档](https://ucloud-us3.github.io/go-sdk/概述.html)
 > - UCloud 官方技术支持：[提交工单](https://accountv2.ucloud.cn/work_ticket/create)
