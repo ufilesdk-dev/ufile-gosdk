@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
-	"encoding/base64"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -325,7 +325,6 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
-
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
@@ -374,11 +373,11 @@ func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) (list Fi
 	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
 	req.Header.Add("authorization", authorization)
 
-	err = u.request(req)
+	_, resBody, err := u.requestWithResponseAndBody(req)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(u.LastResponseBody, &list)
+	err = json.Unmarshal(resBody, &list)
 	return
 }
 
@@ -413,7 +412,7 @@ func (u *UFileRequest) Download(reqURL string) error {
 	return u.request(req)
 }
 
-//Download 文件下载接口, 对下载大文件比较友好；支持流式下载
+//DownloadFile 文件下载接口, 对下载大文件比较友好；支持流式下载
 func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
@@ -485,11 +484,21 @@ func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName strin
 
 //CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致
 func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool {
-	err := u.HeadFile(remoteKeyName)
+	//实现带返回参数resp.Header的HeadFile
+	reqURL := u.genFileURL(remoteKeyName)
+	req, err := http.NewRequest("HEAD", reqURL, nil)
 	if err != nil {
 		return false
 	}
-	remoteEtag := strings.Trim(u.LastResponseHeader.Get("Etag"), "\"")
+	authorization := u.Auth.Authorization("HEAD", u.BucketName, remoteKeyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	resp, _, err := u.requestWithResponseAndBody(req)
+	if err != nil {
+		return false
+	}
+
+	header := resp.Header
+	remoteEtag := strings.Trim(header.Get("Etag"), "\"")
 	localEtag := GetFileEtag(localFilePath)
 	return remoteEtag == localEtag
 }
@@ -558,7 +567,7 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	if err != nil {
 		return err
 	}
-	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+	req.Header.Add("X-Ufile-Copy-Source", "/"+srcBucketName+"/"+srcKeyName)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
@@ -589,10 +598,10 @@ func (u *UFileRequest) ListObjects(prefix, marker, delimiter string, maxkeys int
 	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
 	req.Header.Add("authorization", authorization)
 
-	err = u.request(req)
+	_, resBody, err := u.requestWithResponseAndBody(req)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(u.LastResponseBody, &list)
+	err = json.Unmarshal(resBody, &list)
 	return
 }

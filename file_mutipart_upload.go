@@ -115,14 +115,17 @@ func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int)
 		return err
 	}
 	fsize := getFileSize(file)
-	chunkCount := divideCeil(fsize, int64(state.BlkSize)) //向上取整
+	chunkCount, err := divideCeil(fsize, int64(state.BlkSize)) //向上取整
+	if err != nil {
+		return err
+	}
 	concurrentChan := make(chan error, jobs)
 	for i := 0; i != jobs; i++ {
 		concurrentChan <- nil
 	}
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i != chunkCount; i++ {
+	for i := 0; i < chunkCount; i++ {
 		uploadErr := <-concurrentChan //最初允许启动 10 个 goroutine，超出10个后，有分片返回才会开新的goroutine.
 		if uploadErr != nil {
 			err = uploadErr
@@ -202,12 +205,12 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)
 
-	err = u.request(req)
+	_, resBody, err := u.requestWithResponseAndBody(req)
 	if err != nil {
 		return nil, err
 	}
 	response := new(MultipartState)
-	err = json.Unmarshal(u.LastResponseBody, response)
+	err = json.Unmarshal(resBody, response)
 	if err != nil {
 		return nil, err
 	}
@@ -247,6 +250,12 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	}
 	defer resp.Body.Close()
 
+	if !VerifyHTTPCode(resp.StatusCode) {
+		u.responseParse(resp) //将错误信息写入u.
+		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
 	etag := strings.Trim(resp.Header.Get("Etag"), "\"") //为保证线程安全，这里就不保留 lastResponse
 	if etag == "" {
 		etag = strings.Trim(resp.Header.Get("ETag"), "\"") //为保证线程安全，这里就不保留 lastResponse
@@ -284,8 +293,11 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	return u.request(req)
 }
 
-func divideCeil(a, b int64) int {
+func divideCeil(a, b int64) (int, error) {
+	if b == 0 {
+		return 0, fmt.Errorf("Division by zero!")
+	}
 	div := float64(a) / float64(b)
 	c := math.Ceil(div)
-	return int(c)
+	return int(c), nil
 }

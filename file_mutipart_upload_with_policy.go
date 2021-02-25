@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io"
-	"encoding/base64"	
 	"net/http"
 	"net/url"
 	"strconv"
@@ -84,7 +84,10 @@ func (u *UFileRequest) AsyncUploadWithPolicy(filePath, keyName, mimeType string,
 		return err
 	}
 	fsize := getFileSize(file)
-	chunkCount := divideCeil(fsize, int64(state.BlkSize)) //向上取整
+	chunkCount, err := divideCeil(fsize, int64(state.BlkSize)) //向上取整
+	if err != nil {
+		return err
+	}
 	concurrentChan := make(chan error, jobs)
 	for i := 0; i != jobs; i++ {
 		concurrentChan <- nil
@@ -131,7 +134,6 @@ func (u *UFileRequest) AsyncUploadWithPolicy(filePath, keyName, mimeType string,
 	return u.FinishMultipartUploadWithPolicy(state, policy_json)
 }
 
-
 //FinishMultipartUpload 完成分片上传。分片上传必须要调用的接口。
 //state 参数是 InitiateMultipartUpload 返回的
 func (u *UFileRequest) FinishMultipartUploadWithPolicy(state *MultipartState, policy_json string) error {
@@ -151,7 +153,7 @@ func (u *UFileRequest) FinishMultipartUploadWithPolicy(state *MultipartState, po
 	if err != nil {
 		return err
 	}
-	
+
 	req.Header.Add("Content-Type", state.mimeType)
 
 	policy := base64.URLEncoding.EncodeToString([]byte(policy_json))
@@ -162,5 +164,3 @@ func (u *UFileRequest) FinishMultipartUploadWithPolicy(state *MultipartState, po
 
 	return u.request(req)
 }
-
-

@@ -166,11 +166,11 @@ func (u *UFileRequest) bucketRequest(query url.Values, data response) error {
 	if err != nil {
 		return err
 	}
-	err = u.responseParse(resp)
+	resBody, err := u.responseParseWithResBody(resp)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(u.LastResponseBody, data)
+	err = json.Unmarshal(resBody, data)
 	if err != nil {
 		return err
 	}
@@ -178,6 +178,5 @@ func (u *UFileRequest) bucketRequest(query url.Values, data response) error {
 }
 
 func (u *UFileRequest) genBucketURL(query url.Values) string {
-	u.baseURL.RawQuery = u.Auth.AuthorizationBucketMgr(query)
-	return u.baseURL.String()
+	return u.baseURL.String() + "?" + u.Auth.AuthorizationBucketMgr(query)
 }

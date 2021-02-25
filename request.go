@@ -22,13 +22,13 @@ import (
 //4.远端请求返回值统一返回一个 error，如果为 nil 表示无错。LastResponseStatus，LastResponseHeader，LastResponseBody 可以查看具体的 HTTP 返回信息（）。如果你想少敲几行代码可以直接调用 DumpResponse(true) 查看详细返回。
 //
 type UFileRequest struct {
-	Auth               Auth
-	BucketName         string
-	Host               string
-	Client             *http.Client
-	Context            context.Context
-	baseURL            *url.URL
-	RequestHeader      http.Header
+	Auth          Auth
+	BucketName    string
+	Host          string
+	Client        *http.Client
+	Context       context.Context
+	baseURL       *url.URL
+	RequestHeader http.Header
 
 	LastResponseStatus int
 	LastResponseHeader http.Header
@@ -65,7 +65,7 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 //client 这里你可以传空，会使用默认的 http.Client。如果你需要设置超时以及一些其他相关的网络配置选项请传入一个自定义的 client。
 func NewFileRequestWithHeader(config *Config, header http.Header, client *http.Client) (*UFileRequest, error) {
 	req, err := NewFileRequest(config, client)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	req.RequestHeader = header
@@ -174,4 +174,39 @@ func (u *UFileRequest) requestWithResp(req *http.Request) (resp *http.Response, 
 		return
 	}
 	return
+}
+
+//responseParseWithResBody 处理response，并返回response.Body
+func (u *UFileRequest) responseParseWithResBody(resp *http.Response) ([]byte, error) {
+	resBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	u.LastResponseStatus = resp.StatusCode
+	u.LastResponseHeader = resp.Header
+	u.LastResponseBody = resBody
+	u.lastResponse = resp
+	return resBody, nil
+}
+
+//requestWithResponseAndBody 发出request请求,处理并返回response和body,以解决并发使用UFileRequest时可能产生的bug
+func (u *UFileRequest) requestWithResponseAndBody(req *http.Request) (*http.Response, []byte, error) {
+	resp, err := u.requestWithResp(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	body, err := u.responseParseWithResBody(resp)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !VerifyHTTPCode(resp.StatusCode) {
+		return nil, nil, fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
+	return resp, body, nil
 }
