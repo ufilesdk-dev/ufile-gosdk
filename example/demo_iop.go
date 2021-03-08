@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	localUpFile        = "./stream-up.png"
-	localDlFile        = "./stream-dl.png"
-	iopConfigFile      = "./config.json"
-	iopRemoteFileKey   = "picture.png"
+	localUpFile      = "./stream-up.png"
+	localDlFile      = "./stream-dl.png"
+	iopConfigFile    = "./config.json"
+	iopRemoteFileKey = "picture.png"
 )
 
 func main() {
@@ -25,6 +25,10 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+
+	if _, err := os.Stat(localUpFile); os.IsNotExist(err) {
+		panic(err.Error())
+	}
 	log.Println("正在上传文件...")
 
 	//构建iop命令，缩放为原图50%
@@ -36,7 +40,6 @@ func main() {
 	} else {
 		log.Println("iop上传文件成功")
 	}
-
 
 	log.Println("正在下载文件...")
 	file, err := os.OpenFile(localDlFile, os.O_CREATE|os.O_WRONLY, 0755)
