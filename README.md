@@ -1,5 +1,6 @@
+
 # UCloud 对象存储 SDK <a href="https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk"><img src="https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk?status.svg" alt="GoDoc"></a>
-> Modules are interface and implementation.    
+> Modules are interface and implementation.  
 > The best modules are where interface is much simpler than implementation.  
 > **By: John Ousterhout**
 
@@ -56,15 +57,115 @@ config, err := ufsdk.LoadConfig(configFile)
 if err != nil {
     panic(err.Error())
 }
-req := ufsdk.NewFileRequest(config, nil)
-err = req.PutFile(filePath, keyName, "")
+err = req.IOPut(f, "KeyName", "")
+f.Close()
 if err != nil {
-    fmt.Println("文件上传失败!!，错误信息为：", err.Error())
-    //把 HTTP 详细的 HTTP response dump 出来
-    fmt.Printf("%s\n",req.DumpResponse(true))
+    log.Fatalf("%s\n", req.DumpResponse(true))
+}
+
+// 流式上传大文件
+f1, err := os.Open("FilePath1")
+if err != nil {
+    panic(err.Error())
+}
+err = req.IOMutipartAsyncUpload(f1, "KeyName", "")
+f1.Close()
+if err != nil {
+    log.Fatalf("%s\n", req.DumpResponse(true))
 }
 ```
-更详细的代码请参考 [example/demo_file.go](/example/demo_file.go) 和 [example/demo_bucket.go](example/demo_bucket.go)
+
+[回到目录](#table-of-contents)
+
+
+<a name="分片上传"></a>
+### 分片上传
+
+- demo程序
+
+```go
+// 加载配置，创建请求
+config, err := ufsdk.LoadConfig("config.json")
+if err != nil {
+	panic(err.Error())
+}
+req, err := ufsdk.NewFileRequest(config, nil)
+if err != nil {
+	panic(err.Error())
+}
+
+err = req.MPut("FilePath", "KeyName", "MimeType")
+if err != nil {
+	log.Println("DumpResponse：", string(req.DumpResponse(true)))
+}
+```
+
+[回到目录](#table-of-contents)
+
+<a name="上传回调"></a>
+### 上传回调
+
+- demo程序
+
+```go
+// 加载配置，创建请求
+config, err := ufsdk.LoadConfig("config.json")
+if err != nil {
+	panic(err.Error())
+}
+req, err := ufsdk.NewFileRequest(config, nil)
+if err != nil {
+	panic(err.Error())
+}
+
+// 同步分片上传回调
+err = req.MPutWithPolicy("FilePath", "KeyName", "MimeType", "Policy")
+if err != nil {
+	log.Println("DumpResponse：", string(req.DumpResponse(true)))
+}
+
+// 异步分片上传回调
+err = req.AsyncMPutWithPolicy("FilePath", "KeyName", "MimeType", "Policy")
+if err != nil {
+	log.Println("DumpResponse：", string(req.DumpResponse(true)))
+}
+
+// 异步分片并发上传回调
+jobs := 20 // 并发数为 20
+err = req.AsyncUploadWithPolicy("FilePath", "KeyName", "MimeType", jobs, "Policy")
+if err != nil {
+	log.Println("DumpResponse：", string(req.DumpResponse(true)))
+}
+```
+
+[回到目录](#table-of-contents)
+
+<a name="文件下载"></a>
+### 文件下载
+
+- demo程序
+
+```go
+// 加载配置，创建请求
+config, err := ufsdk.LoadConfig("config.json")
+if err != nil {
+	panic(err.Error())
+}
+req, err := ufsdk.NewFileRequest(config, nil)
+if err != nil {
+	panic(err.Error())
+}
+// 普通下载
+err = req.Download("DownLoadURL")
+if err != nil {
+	log.Println("DumpResponse：", string(req.DumpResponse(true)))
+}
+// 流式下载
+err = req.Download("buffer", "KeyName")
+if err != nil {
+	log.Println("DumpResponse：", string(req.DumpResponse(true)))
+}
+```
 
 ## 客户端加密
 用户需先在配置文件中提供密钥，密钥位数限定16,24或32，分别对应AES-128，AES-192或AES-256算法，配置文件参考[example/config.json.example](/example/config.json.example)
@@ -95,6 +196,9 @@ if err != nil {
 本 SDK 使用 [godoc](https://blog.golang.org/godoc-documenting-go-code) 约定的方法对每个 export 出来的接口进行注释。
 你可以直接访问生成好的[在线文档](https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk)。  
 
-## 如何排错？
-使用 UFileRequest 里面的方法对返回的 error 进行检查。如果不为 nil，调用 Error() 查看错误信息。调用 DumpResponse(true) 并获取返回值查看详细的 HTTP 返回值。
+# 联系我们
 
+> - UCloud US3 [官方网站](https://www.ucloud.cn/site/product/ufile.html)
+> - UCloud US3 [官方文档中心](https://docs.ucloud.cn/ufile/README)
+> - UCloud US3 [开发者文档](https://ucloud-us3.github.io/go-sdk/概述.html)
+> - UCloud 官方技术支持：[提交工单](https://accountv2.ucloud.cn/work_ticket/create)

@@ -145,6 +145,22 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	}
 	h.Add("Content-Type", mimeType)
 
+	var md5Str string
+	if u.verifyUploadMD5 {
+		f, err := openFile(filePath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		b, err := ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
+		md5Str = fmt.Sprintf("%x", md5.Sum(b))
+		fmt.Println("md5Str:", md5Str)
+		h.Add("Content-MD5", md5Str)
+	}
+
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, h)
 
 	boundry := makeBoundry()
@@ -152,14 +168,18 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	if err != nil {
 		return err
 	}
-	//lastline 一定要写，否则后端解析不到。
-	lastline := fmt.Sprintf("\r\n--%s--\r\n", boundry)
-	body.Write([]byte(lastline))
+	//lastLine 一定要写，否则后端解析不到。
+	lastLine := fmt.Sprintf("\r\n--%s--\r\n", boundry)
+	body.Write([]byte(lastLine))
 
 	reqURL := u.genFileURL("")
 	req, err := http.NewRequest("POST", reqURL, body)
 	if err != nil {
 		return err
+	}
+
+	if u.verifyUploadMD5 {
+		req.Header.Add("Content-MD5", md5Str)
 	}
 
 	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundry)
@@ -355,11 +375,11 @@ func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) (list Fi
 	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
 	req.Header.Add("authorization", authorization)
 
-	err = u.request(req)
+	_, resBody, err := u.requestWithResponseAndBody(req)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(u.LastResponseBody, &list)
+	err = json.Unmarshal(resBody, &list)
 	return
 }
 
@@ -394,7 +414,7 @@ func (u *UFileRequest) Download(reqURL string) error {
 	return u.request(req)
 }
 
-//Download 文件下载接口, 对下载大文件比较友好；支持流式下载
+//DownloadFile 文件下载接口, 对下载大文件比较友好；支持流式下载
 func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
@@ -549,11 +569,21 @@ func (u *UFileRequest) DownloadWithDecryptFile(writer io.Writer, keyName string)
 
 //CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致
 func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool {
-	err := u.HeadFile(remoteKeyName)
+	//实现带返回参数resp.Header的HeadFile
+	reqURL := u.genFileURL(remoteKeyName)
+	req, err := http.NewRequest("HEAD", reqURL, nil)
 	if err != nil {
 		return false
 	}
-	remoteEtag := strings.Trim(u.LastResponseHeader.Get("Etag"), "\"")
+	authorization := u.Auth.Authorization("HEAD", u.BucketName, remoteKeyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	resp, _, err := u.requestWithResponseAndBody(req)
+	if err != nil {
+		return false
+	}
+
+	header := resp.Header
+	remoteEtag := strings.Trim(header.Get("Etag"), "\"")
 	localEtag := GetFileEtag(localFilePath)
 	return remoteEtag == localEtag
 }
@@ -653,10 +683,10 @@ func (u *UFileRequest) ListObjects(prefix, marker, delimiter string, maxkeys int
 	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
 	req.Header.Add("authorization", authorization)
 
-	err = u.request(req)
+	_, resBody, err := u.requestWithResponseAndBody(req)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(u.LastResponseBody, &list)
+	err = json.Unmarshal(resBody, &list)
 	return
 }

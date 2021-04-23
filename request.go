@@ -5,11 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ufilesdk-dev/ufile-gosdk/utils"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/ufilesdk-dev/ufile-gosdk/utils"
 )
 
 //UFileRequest SDK 主要的 request 模块。本 SDK 遵从以下原则：
@@ -86,10 +87,6 @@ func NewFileRequestWithHeader(config *Config, header http.Header, client *http.C
 //注意：不要拿它去调用文件管理的 request，我文件管理和 bucket 管理接口放到一个 request 里面的目的就是让接口更统一，代码更清晰，简洁。
 //config 参数里面包含了公私钥，以及其他必填的参数。详情见 config 相关文档。
 func NewBucketRequest(config *Config, client *http.Client) (*UFileRequest, error) {
-	config.BucketHost = strings.TrimSpace(config.BucketHost)
-	if config.BucketHost == "" {
-		return nil, errors.New("管理 Bucket 必须要提供对应的 API host")
-	}
 	req := newRequest(config.PublicKey, config.PrivateKey, "", config.BucketHost, client)
 	req.verifyUploadMD5 = config.VerifyUploadMD5
 	if req.baseURL.Scheme == "" {
@@ -174,7 +171,7 @@ func (u *UFileRequest) request(req *http.Request) error {
 }
 
 func (u *UFileRequest) requestWithResp(req *http.Request) (resp *http.Response, err error) {
-	req.Header.Set("User-Agent", "UFileGoSDK/2.02")
+	req.Header.Set("User-Agent", "UFileGoSDK/2.1.1")
 
 	resp, err = u.Client.Do(req.WithContext(u.Context))
 	// If we got an error, and the context has been canceled,
@@ -188,4 +185,39 @@ func (u *UFileRequest) requestWithResp(req *http.Request) (resp *http.Response, 
 		return
 	}
 	return
+}
+
+//responseParseWithResBody 处理response，并返回response.Body
+func (u *UFileRequest) responseParseWithResBody(resp *http.Response) ([]byte, error) {
+	resBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	u.LastResponseStatus = resp.StatusCode
+	u.LastResponseHeader = resp.Header
+	u.LastResponseBody = resBody
+	u.lastResponse = resp
+	return resBody, nil
+}
+
+//requestWithResponseAndBody 发出request请求,处理并返回response和body,以解决并发使用UFileRequest时可能产生的bug
+func (u *UFileRequest) requestWithResponseAndBody(req *http.Request) (*http.Response, []byte, error) {
+	resp, err := u.requestWithResp(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	body, err := u.responseParseWithResBody(resp)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !VerifyHTTPCode(resp.StatusCode) {
+		return nil, nil, fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+
+	return resp, body, nil
 }

@@ -7,9 +7,12 @@
      "bucket_name":"",
      "file_host":"",
 
-     "说明3":"以下参数是用来管理 bucket 用的。对应的是 bucket.go 里面的接口",
-     "bucket_host":"",
+     "说明3":"以下参数是用来管理 bucket 用的。对应的是 bucket.go 里面的接口。直接填写 api.ucloud.cn 即可",
+     "bucket_host": "api.ucloud.cn",
 
      "说明4":"以下参数是用来做客户端文件加解密的密钥，请务必妥善保管，丢失后将无法解密文件，长度限定为16,24或32",
      "crypto_key":""
- }
+
+     "说明5":"verify_upload_md5 用于数据完整性校验，默认不开启，若要开启请置为true",
+     "verfiy_upload_md5": false
+}
