@@ -394,11 +394,8 @@ func (u *UFileRequest) Download(reqURL string) error {
 	return u.request(req)
 }
 
-//Download 文件下载接口, 对下载大文件比较友好；支持流式下载
-func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
-
-	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
-	req, err := http.NewRequest("GET", reqURL, nil)
+func (u *UFileRequest) downloadFileInner(writer io.Writer, reqUrl string) error {
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
 	}
@@ -407,8 +404,6 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
 	u.LastResponseStatus = resp.StatusCode
 	u.LastResponseHeader = resp.Header
 	u.LastResponseBody = nil //流式下载无body存储在u里
@@ -417,16 +412,24 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
 			resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
-	size := u.LastResponseHeader.Get("Content-Length")
-	fileSize, err := strconv.ParseInt(size, 10, 0)
-	if err != nil || fileSize < 0 {
-		return fmt.Errorf("Parse content-lengt returned error")
-	}
+	defer resp.Body.Close()
 	_, err = io.Copy(writer, resp.Body)
 	return err
 }
 
-//DownloadFileWithIopString 支持下载iop，直接指定iop命令字符串
+// DownloadPublicFile 公有文件下载
+func (u *UFileRequest) DownloadPublicFile(writer io.Writer, keyName string) error {
+	reqURL := u.GetPublicURL(keyName)
+	return u.downloadFileInner(writer, reqURL)
+}
+
+//Download 私有文件下载接口, 对下载大文件比较友好；支持流式下载
+func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
+	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
+	return u.downloadFileInner(writer, reqURL)
+}
+
+//DownlodFileWithIopString 支持下载iop，直接指定iop命令字符串
 func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName string, iopcmd string) error {
 
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
@@ -435,33 +438,7 @@ func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName strin
 	if iopcmd != "" {
 		reqURL += "&" + iopcmd
 	}
-
-	req, err := http.NewRequest("GET", reqURL, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := u.requestWithResp(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	u.LastResponseStatus = resp.StatusCode
-	u.LastResponseHeader = resp.Header
-	u.LastResponseBody = nil //流式下载无body存储在u里
-	u.lastResponse = resp
-	if !VerifyHTTPCode(resp.StatusCode) {
-		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
-			resp.StatusCode, http.StatusText(resp.StatusCode))
-	}
-	size := u.LastResponseHeader.Get("Content-Length")
-	fileSize, err := strconv.ParseInt(size, 10, 0)
-	if err != nil || fileSize < 0 {
-		return fmt.Errorf("Parse content-lengt returned error")
-	}
-	_, err = io.Copy(writer, resp.Body)
-	return err
+	return u.downloadFileInner(writer, reqURL)
 }
 
 //PutWithCryptoFile 文件客户端加密上传
