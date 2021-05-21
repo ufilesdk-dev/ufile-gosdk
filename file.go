@@ -404,6 +404,7 @@ func (u *UFileRequest) downloadFileInner(writer io.Writer, reqUrl string) error 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	u.LastResponseStatus = resp.StatusCode
 	u.LastResponseHeader = resp.Header
 	u.LastResponseBody = nil //流式下载无body存储在u里
@@ -412,7 +413,11 @@ func (u *UFileRequest) downloadFileInner(writer io.Writer, reqUrl string) error 
 		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
 			resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
-	defer resp.Body.Close()
+	size := u.LastResponseHeader.Get("Content-Length")
+	fileSize, err := strconv.ParseInt(size, 10, 0)
+	if err != nil || fileSize < 0 {
+		return fmt.Errorf("Parse content-lengt returned error")
+	}
 	_, err = io.Copy(writer, resp.Body)
 	return err
 }
