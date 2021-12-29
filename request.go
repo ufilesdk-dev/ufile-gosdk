@@ -45,7 +45,7 @@ type UFileRequest struct {
 func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) {
 	config.BucketName = strings.TrimSpace(config.BucketName)
 	config.FileHost = strings.TrimSpace(config.FileHost)
-	if config.BucketName == "" || config.FileHost == "" {
+	if config.BucketName == "" {
 		return nil, errors.New("管理文件上传必须要提供 bucket 名字和所在地域的 Host 域名")
 	}
 	req := newRequest(config.PublicKey, config.PrivateKey,
@@ -55,12 +55,12 @@ func NewFileRequest(config *Config, client *http.Client) (*UFileRequest, error) 
 		req.baseURL.Host = req.BucketName + "." + req.Host
 		req.baseURL.Scheme = "http"
 	} else {
-		url, err := req.baseURL.Parse(config.Endpoint)
+		endpoint, err := url.Parse(config.Endpoint)
 		if err != nil {
 			return nil, errors.New("illegal Endpoint")
 		}
-		req.baseURL.Host = url.Host
-		req.baseURL.Scheme = url.Scheme
+		req.baseURL.Host = endpoint.Host
+		req.baseURL.Scheme = endpoint.Scheme
 	}
 	return req, nil
 }
