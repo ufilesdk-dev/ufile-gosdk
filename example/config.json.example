@@ -6,6 +6,8 @@
     "说明2":"以下两个参数是用来管理文件用的。对应的是 file.go 里面的接口，file_host 是不带 bucket 名字的。比如：北京地域的host填cn-bj.ufileos.com，而不是填 bucketname.cn-bj.ufileos.com。如果是自定义域名，请直接带上 http 开头的 URL。如：http://example.com，而不是填 example.com。",
     "bucket_name":"",
     "file_host":"",
+    "域名"："可配置自定义域名，格式，http://abc.com 或  https://abc.com，可空"，
+    "endpoint"：""，
 
      "说明3":"以下参数是用来管理 bucket 用的。对应的是 bucket.go 里面的接口。直接填写 api.ucloud.cn 即可",
      "bucket_host": "api.ucloud.cn",
