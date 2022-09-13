@@ -245,6 +245,15 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	if err != nil {
 		return err
 	}
+
+	if !VerifyHTTPCode(resp.StatusCode) {
+		err = u.responseParse(resp)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
 	defer resp.Body.Close()
 
 	etag := strings.Trim(resp.Header.Get("Etag"), "\"") //为保证线程安全，这里就不保留 lastResponse
