@@ -54,7 +54,7 @@ Table of Contents
 
 ### 环境要求
 
-- Golanng 版本 (待校验)
+- Golang 版本 (待校验)
 
 ### SDK下载
 
