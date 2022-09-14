@@ -131,7 +131,7 @@ func (u *UFileRequest) DumpResponse(isDumpBody bool) []byte {
 
 func (u *UFileRequest) ParseError() error {
 	if u.LastResponseBody == nil {
-		return fmt.Errorf("流式下载无 body 存储在 u 里，也就无法 parse body 得到 RetCode 与 ErrMsg。。。。（冷汗")
+		return fmt.Errorf("Stream downloads have no resp.Body stored in 'u', so you cannot parse the body to get RetCode and ErrMsg...")
 	}
 
 	var list struct {

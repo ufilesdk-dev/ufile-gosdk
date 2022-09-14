@@ -412,17 +412,12 @@ func (u *UFileRequest) GetMultiUploadId(prefix, marker, uploadIdMarker string, l
 	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
 	req.Header.Add("authorization", authorization)
 
-	// fmt.Printf(">>> GetMultiUploadId()\n\t")
-	// fmt.Printf(">>> req is %v\n", req)
 	err = u.request(req)
 	if err != nil {
-		// err = u.ParseError()
 		return
 	}
 
 	err = json.Unmarshal(u.LastResponseBody, &list)
-	// fmt.Printf(">>> GetMultiUploadId()\n\t")
-	// fmt.Printf(">>> list is %v\n", list)
 	return
 }
 
@@ -449,31 +444,21 @@ func (u *UFileRequest) GetMultiUploadPart(uploadId string, maxParts, partNumberM
 	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
 	req.Header.Add("authorization", authorization)
 
-	// fmt.Printf(">>> GetMultiUploadPart()\n\t")
-	// fmt.Printf(">>> req is %v\n", req)
 	err = u.request(req)
 	if err != nil {
-		// err = u.ParseError()
 		return
 	}
 
 	var uploadPartResponse UploadPartResponse
 	err = json.Unmarshal(u.LastResponseBody, &uploadPartResponse)
 	if err != nil {
-		// logrus.Infof("||| 确实解析不了，err = %v\n", err)
 		return
 	}
 
 	for _, part := range uploadPartResponse.Parts {
 		tmp := part
 		parts = append(parts, &tmp)
-		// parts = append(parts, &part) // 注：part 为 Parts 中元素的副本，因此这种方法会出错！！！
 	}
-	// fmt.Printf(">>> GetMultiUploadPart()\n\t")
-	// fmt.Printf(">>> parts are %v\n", parts)
-	// for i, part := range parts {
-	// 	fmt.Printf("\t\t>>> part[%v] = %v\n", i, *part)
-	// }
 	return
 }
 

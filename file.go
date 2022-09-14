@@ -471,7 +471,6 @@ func (u *UFileRequest) DownloadFileRetRespBody(keyName string, offset int64) (io
 		}
 		defer resp.Body.Close()
 		u.LastResponseBody = resBody
-		// retReadCloser := ioutil.NopCloser(bytes.NewReader(resBody))
 		return nil, fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
 			resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
