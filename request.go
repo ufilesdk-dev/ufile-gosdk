@@ -3,6 +3,7 @@ package ufsdk
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -35,6 +36,18 @@ type UFileRequest struct {
 	LastResponseBody   []byte
 	verifyUploadMD5    bool
 	lastResponse       *http.Response
+}
+
+type Error struct {
+	RetCode    int
+	StatusCode int
+	BucketName string
+	ErrMsg     string
+	// ...
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("US3 API Error: BucketName: %s; StatusCode: %d; RetCode: %d; ErrMsg: %s", e.BucketName, e.StatusCode, e.RetCode, e.ErrMsg)
 }
 
 //NewFileRequest 创建一个用于管理文件的 request，管理文件的 url 与 管理 bucket 接口不一样，
@@ -114,6 +127,29 @@ func (u *UFileRequest) DumpResponse(isDumpBody bool) []byte {
 		b.Write(u.LastResponseBody)
 	}
 	return b.Bytes()
+}
+
+func (u *UFileRequest) ParseError() error {
+	if u.LastResponseBody == nil {
+		return fmt.Errorf("流式下载无 body 存储在 u 里，也就无法 parse body 得到 RetCode 与 ErrMsg。。。。（冷汗")
+	}
+
+	var list struct {
+		RetCode int    `json:"RetCode,omitempty"`
+		ErrMsg  string `json:"ErrMsg,omitempty"`
+	}
+
+	err := json.Unmarshal(u.LastResponseBody, &list)
+	if err != nil {
+		return err
+	}
+
+	return &Error{
+		BucketName: u.BucketName,
+		StatusCode: u.LastResponseStatus,
+		RetCode:    list.RetCode,
+		ErrMsg:     list.ErrMsg,
+	}
 }
 
 func newRequest(publicKey, privateKey, bucket, host string, client *http.Client) *UFileRequest {
