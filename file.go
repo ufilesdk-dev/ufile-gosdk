@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
-	"encoding/base64"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,7 +19,7 @@ const (
 	fourMegabyte = 1 << 22 //4M
 )
 
-//FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
+// FileDataSet  用于 FileListResponse 里面的 DataSet 字段。
 type FileDataSet struct {
 	BucketName    string `json:"BucketName,omitempty"`
 	FileName      string `json:"FileName,omitempty"`
@@ -33,7 +33,7 @@ type FileDataSet struct {
 	RestoreStatus string `json:"RestoreStatus,omitempty"`
 }
 
-//FileListResponse 用 PrefixFileList 接口返回的 list 数据。
+// FileListResponse 用 PrefixFileList 接口返回的 list 数据。
 type FileListResponse struct {
 	BucketName string        `json:"BucketName,omitempty"`
 	BucketID   string        `json:"BucketId,omitempty"`
@@ -45,15 +45,15 @@ func (f FileListResponse) String() string {
 	return structPrettyStr(f)
 }
 
-//ListObjectsResponse 用 ListObjects 接口返回的 list 数据。
-//Name Bucket名称
-//Prefix 查询结果的前缀
-//MaxKeys 查询结果的最大数量
-//Delimiter 查询结果的目录分隔符
-//IsTruncated 返回结果是否被截断。若值为true，则表示仅返回列表的一部分，NextMarker可作为之后迭代的游标
-//NextMarker 可作为查询请求中的的Marker参数，实现迭代查询
-//Contents 文件列表
-//CommonPrefixes 以Delimiter结尾，并且有共同前缀的目录列表
+// ListObjectsResponse 用 ListObjects 接口返回的 list 数据。
+// Name Bucket名称
+// Prefix 查询结果的前缀
+// MaxKeys 查询结果的最大数量
+// Delimiter 查询结果的目录分隔符
+// IsTruncated 返回结果是否被截断。若值为true，则表示仅返回列表的一部分，NextMarker可作为之后迭代的游标
+// NextMarker 可作为查询请求中的的Marker参数，实现迭代查询
+// Contents 文件列表
+// CommonPrefixes 以Delimiter结尾，并且有共同前缀的目录列表
 type ListObjectsResponse struct {
 	Name           string          `json:"Name,omitempty"`
 	Prefix         string          `json:"Prefix,omitempty"`
@@ -69,15 +69,15 @@ func (f ListObjectsResponse) String() string {
 	return structPrettyStr(f)
 }
 
-//ObjectInfo 用于 ListObjectsResponse 里面的 Contents 字段
-//Key 文件名称
-//MimeType 文件mimetype
-//LastModified 文件最后修改时间
-//CreateTime 文件创建时间
-//ETag 标识文件内容
-//Size 文件大小
-//StorageClass 文件存储类型
-//UserMeta 用户自定义元数据
+// ObjectInfo 用于 ListObjectsResponse 里面的 Contents 字段
+// Key 文件名称
+// MimeType 文件mimetype
+// LastModified 文件最后修改时间
+// CreateTime 文件创建时间
+// ETag 标识文件内容
+// Size 文件大小
+// StorageClass 文件存储类型
+// UserMeta 用户自定义元数据
 type ObjectInfo struct {
 	Key          string            `json:"Key,omitempty"`
 	MimeType     string            `json:"MimeType,omitempty"`
@@ -89,13 +89,13 @@ type ObjectInfo struct {
 	UserMeta     map[string]string `json:"UserMeta,omitempty"`
 }
 
-//CommonPreInfo 用于 ListObjectsResponse 里面的 CommonPrefixes 字段
-//Prefix 以Delimiter结尾的公共前缀目录名
+// CommonPreInfo 用于 ListObjectsResponse 里面的 CommonPrefixes 字段
+// Prefix 以Delimiter结尾的公共前缀目录名
 type CommonPreInfo struct {
 	Prefix string `json:"Prefix,omitempty"`
 }
 
-//UploadHit 文件秒传，它的原理是计算出文件的 etag 值与远端服务器进行对比，如果文件存在就快速返回。
+// UploadHit 文件秒传，它的原理是计算出文件的 etag 值与远端服务器进行对比，如果文件存在就快速返回。
 func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
 	file, err := openFile(filePath)
 	if err != nil {
@@ -120,11 +120,11 @@ func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
 	return u.request(req)
 }
 
-//PostFile 使用 HTTP Form 的方式上传一个文件。
-//注意：使用本接口上传文件后，调用 UploadHit 接口会返回 404，因为经过 form 包装的文件，etag 值会不一样，所以会调用失败。
-//mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
-//keyName 表示传到 ufile 的文件名。
-//小于 100M 的文件推荐使用本接口上传。
+// PostFile 使用 HTTP Form 的方式上传一个文件。
+// 注意：使用本接口上传文件后，调用 UploadHit 接口会返回 404，因为经过 form 包装的文件，etag 值会不一样，所以会调用失败。
+// mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+// keyName 表示传到 ufile 的文件名。
+// 小于 100M 的文件推荐使用本接口上传。
 func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) {
 	file, err := openFile(filePath)
 	if err != nil {
@@ -191,10 +191,10 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	return u.request(req)
 }
 
-//PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
-//mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
-//keyName 表示传到 ufile 的文件名。
-//小于 100M 的文件推荐使用本接口上传。
+// PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
+// mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
+// keyName 表示传到 ufile 的文件名。
+// 小于 100M 的文件推荐使用本接口上传。
 func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 	reqURL := u.genFileURL(keyName)
 	file, err := openFile(filePath)
@@ -236,7 +236,7 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 	return u.request(req)
 }
 
-//PutFileWithIopString 支持上传iop, 直接指定iop字符串, 上传iop必须指定saveAs命令做持久化，否则图片处理不会生效
+// PutFileWithIopString 支持上传iop, 直接指定iop字符串, 上传iop必须指定saveAs命令做持久化，否则图片处理不会生效
 func (u *UFileRequest) PutFileWithIopString(filePath, keyName, mimeType string, iopcmd string) error {
 	reqURL := u.genFileURL(keyName)
 	file, err := openFile(filePath)
@@ -283,11 +283,11 @@ func (u *UFileRequest) PutFileWithIopString(filePath, keyName, mimeType string, 
 	return u.request(req)
 }
 
-//PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
-//mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
-//keyName 表示传到 ufile 的文件名。
-//小于 100M 的文件推荐使用本接口上传。
-//支持带上传回调的参数, policy_json 为json 格式字符串
+// PutFile 把文件直接放到 HTTP Body 里面上传，相对 PostFile 接口，这个要更简单，速度会更快（因为不用包装 form）。
+// mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
+// keyName 表示传到 ufile 的文件名。
+// 小于 100M 的文件推荐使用本接口上传。
+// 支持带上传回调的参数, policy_json 为json 格式字符串
 func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, policy_json string) error {
 	reqURL := u.genFileURL(keyName)
 	file, err := openFile(filePath)
@@ -325,9 +325,8 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
-
-//DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
-//keyName 表示传到 ufile 的文件名。
+// DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
+// keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
 	reqURL := u.genFileURL(keyName)
 	req, err := http.NewRequest("DELETE", reqURL, nil)
@@ -339,8 +338,8 @@ func (u *UFileRequest) DeleteFile(keyName string) error {
 	return u.request(req)
 }
 
-//HeadFile 获取一个文件的基本信息，返回的信息全在 header 里面。包含 mimeType, content-length（文件大小）, etag, Last-Modified:。
-//keyName 表示传到 ufile 的文件名。
+// HeadFile 获取一个文件的基本信息，返回的信息全在 header 里面。包含 mimeType, content-length（文件大小）, etag, Last-Modified:。
+// keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) HeadFile(keyName string) error {
 	reqURL := u.genFileURL(keyName)
 	req, err := http.NewRequest("HEAD", reqURL, nil)
@@ -352,10 +351,10 @@ func (u *UFileRequest) HeadFile(keyName string) error {
 	return u.request(req)
 }
 
-//PrefixFileList 获取文件列表。
-//prefix 表示匹配文件前缀。
-//marker 标志字符串
-//limit 列表数量限制，传 0 会默认设置为 20.
+// PrefixFileList 获取文件列表。
+// prefix 表示匹配文件前缀。
+// marker 标志字符串
+// limit 列表数量限制，传 0 会默认设置为 20.
 func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) (list FileListResponse, err error) {
 	query := &url.Values{}
 	query.Add("prefix", prefix)
@@ -382,15 +381,15 @@ func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) (list Fi
 	return
 }
 
-//GetPublicURL 获取公有空间的文件下载 URL
-//keyName 表示传到 ufile 的文件名。
+// GetPublicURL 获取公有空间的文件下载 URL
+// keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) GetPublicURL(keyName string) string {
 	return u.genFileURL(keyName)
 }
 
-//GetPrivateURL 获取私有空间的文件下载 URL。
-//keyName 表示传到 ufile 的文件名。
-//expiresDuation 表示下载链接的过期时间，从现在算起，24 * time.Hour 表示过期时间为一天。
+// GetPrivateURL 获取私有空间的文件下载 URL。
+// keyName 表示传到 ufile 的文件名。
+// expiresDuation 表示下载链接的过期时间，从现在算起，24 * time.Hour 表示过期时间为一天。
 func (u *UFileRequest) GetPrivateURL(keyName string, expiresDuation time.Duration) string {
 	t := time.Now()
 	t = t.Add(expiresDuation)
@@ -404,7 +403,7 @@ func (u *UFileRequest) GetPrivateURL(keyName string, expiresDuation time.Duratio
 	return reqURL + "?" + query.Encode()
 }
 
-//Download 把文件下载到 HTTP Body 里面，这里只能用来下载小文件，建议使用 DownloadFile 来下载大文件。
+// Download 把文件下载到 HTTP Body 里面，这里只能用来下载小文件，建议使用 DownloadFile 来下载大文件。
 func (u *UFileRequest) Download(reqURL string) error {
 	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
@@ -413,7 +412,7 @@ func (u *UFileRequest) Download(reqURL string) error {
 	return u.request(req)
 }
 
-//Download 文件下载接口, 对下载大文件比较友好；支持流式下载
+// Download 文件下载接口, 对下载大文件比较友好；支持流式下载
 func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
@@ -465,11 +464,11 @@ func (u *UFileRequest) DownloadFileRetRespBody(keyName string, offset int64) (io
 
 	if !VerifyHTTPCode(resp.StatusCode) {
 		// 如果 req 出错，此时可以将 resp.Body 保存到内存里，因为 resp.Body 里就只有 RetCode ErrMsg 等信息
+		defer resp.Body.Close()
 		resBody, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
 		u.LastResponseBody = resBody
 		return nil, fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
 			resp.StatusCode, http.StatusText(resp.StatusCode))
@@ -482,7 +481,7 @@ func (u *UFileRequest) DownloadFileRetRespBody(keyName string, offset int64) (io
 	return resp.Body, nil
 }
 
-//DownloadFileWithIopString 支持下载iop，直接指定iop命令字符串
+// DownloadFileWithIopString 支持下载iop，直接指定iop命令字符串
 func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName string, iopcmd string) error {
 
 	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
@@ -520,7 +519,7 @@ func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName strin
 	return err
 }
 
-//CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致
+// CompareFileEtag 检查远程文件的 etag 和本地文件的 etag 是否一致
 func (u *UFileRequest) CompareFileEtag(remoteKeyName, localFilePath string) bool {
 	err := u.HeadFile(remoteKeyName)
 	if err != nil {
@@ -535,7 +534,7 @@ func (u *UFileRequest) genFileURL(keyName string) string {
 	return u.baseURL.String() + keyName
 }
 
-//Restore 用于解冻冷存类型的文件
+// Restore 用于解冻冷存类型的文件
 func (u *UFileRequest) Restore(keyName string) (err error) {
 	reqURL := u.genFileURL(keyName) + "?restore"
 	req, err := http.NewRequest("PUT", reqURL, nil)
@@ -547,9 +546,9 @@ func (u *UFileRequest) Restore(keyName string) (err error) {
 	return u.request(req)
 }
 
-//ClassSwitch 存储类型转换接口
-//keyName 文件名称
-//storageClass 所要转换的新文件存储类型，目前支持的类型分别是标准:"STANDARD"、低频:"IA"、冷存:"ARCHIVE"
+// ClassSwitch 存储类型转换接口
+// keyName 文件名称
+// storageClass 所要转换的新文件存储类型，目前支持的类型分别是标准:"STANDARD"、低频:"IA"、冷存:"ARCHIVE"
 func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err error) {
 	query := &url.Values{}
 	query.Add("storageClass", storageClass)
@@ -563,10 +562,10 @@ func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err err
 	return u.request(req)
 }
 
-//Rename 重命名指定文件
-//keyName 需要被重命名的源文件
-//newKeyName 修改后的新文件名
-//force 如果已存在同名文件，值为"true"则覆盖，否则会操作失败
+// Rename 重命名指定文件
+// keyName 需要被重命名的源文件
+// newKeyName 修改后的新文件名
+// force 如果已存在同名文件，值为"true"则覆盖，否则会操作失败
 func (u *UFileRequest) Rename(keyName, newKeyName, force string) (err error) {
 
 	query := url.Values{}
@@ -583,10 +582,10 @@ func (u *UFileRequest) Rename(keyName, newKeyName, force string) (err error) {
 	return u.request(req)
 }
 
-//Copy 从同组织下的源Bucket中拷贝指定文件到目的Bucket中，并以新文件名命名
-//dstkeyName 拷贝到目的Bucket后的新文件名
-//srcBucketName 待拷贝文件所在的源Bucket名称
-//srcKeyName 待拷贝文件名称
+// Copy 从同组织下的源Bucket中拷贝指定文件到目的Bucket中，并以新文件名命名
+// dstkeyName 拷贝到目的Bucket后的新文件名
+// srcBucketName 待拷贝文件所在的源Bucket名称
+// srcKeyName 待拷贝文件名称
 func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err error) {
 
 	reqURL := u.genFileURL(dstkeyName)
@@ -595,18 +594,18 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	if err != nil {
 		return err
 	}
-	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+	req.Header.Add("X-Ufile-Copy-Source", "/"+srcBucketName+"/"+srcKeyName)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }
 
-//ListObjects 获取目录文件列表。
-//prefix 返回以Prefix作为前缀的目录文件列表
-//marker 返回以字母排序后，大于Marker的目录文件列表
-//delimiter 目录分隔符，当前只支持"/"和""，当Delimiter设置为"/"时，返回目录形式的文件列表，当Delimiter设置为""时，返回非目录层级文件列表
-//maxkeys 指定返回目录文件列表的最大数量，默认值为100
+// ListObjects 获取目录文件列表。
+// prefix 返回以Prefix作为前缀的目录文件列表
+// marker 返回以字母排序后，大于Marker的目录文件列表
+// delimiter 目录分隔符，当前只支持"/"和""，当Delimiter设置为"/"时，返回目录形式的文件列表，当Delimiter设置为""时，返回非目录层级文件列表
+// maxkeys 指定返回目录文件列表的最大数量，默认值为100
 func (u *UFileRequest) ListObjects(prefix, marker, delimiter string, maxkeys int) (list ListObjectsResponse, err error) {
 	query := &url.Values{}
 	query.Add("prefix", prefix)
