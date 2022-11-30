@@ -30,7 +30,7 @@ func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err er
 	}
 
 	reqURL := u.genFileURL(keyName)
-	req, err := NewHttpRequestWithHeader("PUT", reqURL, reader, u.RequestHeader)
+	req, err := newHttpRequestWithHeader("PUT", reqURL, reader, u.RequestHeader)
 	if err != nil {
 		return err
 	}

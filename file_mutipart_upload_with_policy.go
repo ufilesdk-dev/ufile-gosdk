@@ -145,7 +145,7 @@ func (u *UFileRequest) FinishMultipartUploadWithPolicy(state *MultipartState, po
 		}
 	}
 
-	req, err := NewHttpRequestWithHeader("POST", reqURL, strings.NewReader(etagsStr), u.RequestHeader)
+	req, err := newHttpRequestWithHeader("POST", reqURL, strings.NewReader(etagsStr), u.RequestHeader)
 	if err != nil {
 		return err
 	}
