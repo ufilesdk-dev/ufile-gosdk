@@ -8,7 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 )
 
 //UFileRequest SDK 主要的 request 模块。本 SDK 遵从以下原则：
@@ -124,7 +126,9 @@ func newRequest(publicKey, privateKey, bucket, host string, client *http.Client)
 	req.baseURL = new(url.URL)
 	req.baseURL.Host = req.Host
 	req.baseURL.Path = "/" //for default usage.
-
+	req.RequestHeader = make(http.Header)
+	req.RequestHeader.Add("Date", time.Now().String())
+	req.RequestHeader.Add("Expires", strconv.FormatInt(time.Now().Add(1*time.Hour).Unix(), 10))
 	if client == nil {
 		client = new(http.Client)
 	}
