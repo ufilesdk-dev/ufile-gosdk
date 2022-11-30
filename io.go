@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"strings"
 	"sync"
 )
@@ -31,7 +30,7 @@ func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err er
 	}
 
 	reqURL := u.genFileURL(keyName)
-	req, err := http.NewRequest("PUT", reqURL, reader)
+	req, err := newHttpRequestWithHeader("PUT", reqURL, reader, u.RequestHeader)
 	if err != nil {
 		return err
 	}

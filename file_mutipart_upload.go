@@ -169,7 +169,7 @@ func (u *UFileRequest) AbortMultipartUpload(state *MultipartState) error {
 	query.Add("uploadId", state.uploadID)
 	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
 
-	req, err := http.NewRequest("DELETE", reqURL, nil)
+	req, err := newHttpRequestWithHeader("DELETE", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func (u *UFileRequest) AbortMultipartUpload(state *MultipartState) error {
 //mimeType 表示文件的 mimeType, 传空会报错，你可以使用 GetFileMimeType 方法检测文件的 mimeType。如果您上传的不是文件，您可以使用 http.DetectContentType https://golang.org/src/net/http/sniff.go?s=646:688#L11进行检测。
 func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*MultipartState, error) {
 	reqURL := u.genFileURL(keyName) + "?uploads"
-	req, err := http.NewRequest("POST", reqURL, nil)
+	req, err := newHttpRequestWithHeader("POST", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -193,11 +193,6 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 	//		return nil, fmt.Errorf("Mime Type 不能为空！！！")
 	//	}
 	req.Header.Add("Content-Type", mimeType)
-	for k, v := range u.RequestHeader {
-		for i := 0; i < len(v); i++ {
-			req.Header.Add(k, v[i])
-		}
-	}
 
 	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
 	req.Header.Add("authorization", authorization)
@@ -227,7 +222,7 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	query.Add("partNumber", strconv.Itoa(partNumber))
 
 	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
-	req, err := http.NewRequest("PUT", reqURL, buf)
+	req, err := newHttpRequestWithHeader("PUT", reqURL, buf, u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -281,7 +276,7 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 		}
 	}
 
-	req, err := http.NewRequest("POST", reqURL, strings.NewReader(etagsStr))
+	req, err := newHttpRequestWithHeader("POST", reqURL, strings.NewReader(etagsStr), u.RequestHeader)
 	if err != nil {
 		return err
 	}

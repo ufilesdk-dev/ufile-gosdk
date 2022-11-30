@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
-	"encoding/base64"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -95,6 +95,15 @@ type CommonPreInfo struct {
 	Prefix string `json:"Prefix,omitempty"`
 }
 
+func newHttpRequestWithHeader(method string, url string, body io.Reader, header http.Header) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = header
+	return req, nil
+}
+
 //UploadHit 文件秒传，它的原理是计算出文件的 etag 值与远端服务器进行对比，如果文件存在就快速返回。
 func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
 	file, err := openFile(filePath)
@@ -171,7 +180,7 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	body.Write([]byte(lastLine))
 
 	reqURL := u.genFileURL("")
-	req, err := http.NewRequest("POST", reqURL, body)
+	req, err := newHttpRequestWithHeader("POST", reqURL, body, u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -183,11 +192,6 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 	req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundry)
 	contentLength := body.Len()
 	req.Header.Add("Content-Length", strconv.Itoa(contentLength))
-	for k, v := range u.RequestHeader {
-		for i := 0; i < len(v); i++ {
-			req.Header.Add(k, v[i])
-		}
-	}
 	return u.request(req)
 }
 
@@ -208,7 +212,7 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
+	req, err := newHttpRequestWithHeader("PUT", reqURL, bytes.NewBuffer(b), u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -217,11 +221,6 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 		mimeType = getMimeType(file)
 	}
 	req.Header.Add("Content-Type", mimeType)
-	for k, v := range u.RequestHeader {
-		for i := 0; i < len(v); i++ {
-			req.Header.Add(k, v[i])
-		}
-	}
 
 	if u.verifyUploadMD5 {
 		md5Str := fmt.Sprintf("%x", md5.Sum(b))
@@ -255,7 +254,7 @@ func (u *UFileRequest) PutFileWithIopString(filePath, keyName, mimeType string, 
 		reqURL += "?" + iopcmd
 	}
 
-	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
+	req, err := newHttpRequestWithHeader("PUT", reqURL, bytes.NewBuffer(b), u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -264,11 +263,6 @@ func (u *UFileRequest) PutFileWithIopString(filePath, keyName, mimeType string, 
 		mimeType = getMimeType(file)
 	}
 	req.Header.Add("Content-Type", mimeType)
-	for k, v := range u.RequestHeader {
-		for i := 0; i < len(v); i++ {
-			req.Header.Add(k, v[i])
-		}
-	}
 
 	if u.verifyUploadMD5 {
 		md5Str := fmt.Sprintf("%x", md5.Sum(b))
@@ -301,7 +295,7 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(b))
+	req, err := newHttpRequestWithHeader("PUT", reqURL, bytes.NewBuffer(b), u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -325,12 +319,11 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
-
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
 	reqURL := u.genFileURL(keyName)
-	req, err := http.NewRequest("DELETE", reqURL, nil)
+	req, err := newHttpRequestWithHeader("DELETE", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -343,7 +336,7 @@ func (u *UFileRequest) DeleteFile(keyName string) error {
 //keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) HeadFile(keyName string) error {
 	reqURL := u.genFileURL(keyName)
-	req, err := http.NewRequest("HEAD", reqURL, nil)
+	req, err := newHttpRequestWithHeader("HEAD", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -366,7 +359,7 @@ func (u *UFileRequest) PrefixFileList(prefix, marker string, limit int) (list Fi
 	query.Add("limit", strconv.Itoa(limit))
 	reqURL := u.genFileURL("") + "?list&" + query.Encode()
 
-	req, err := http.NewRequest("GET", reqURL, nil)
+	req, err := newHttpRequestWithHeader("GET", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return
 	}
@@ -501,7 +494,7 @@ func (u *UFileRequest) genFileURL(keyName string) string {
 //Restore 用于解冻冷存类型的文件
 func (u *UFileRequest) Restore(keyName string) (err error) {
 	reqURL := u.genFileURL(keyName) + "?restore"
-	req, err := http.NewRequest("PUT", reqURL, nil)
+	req, err := newHttpRequestWithHeader("PUT", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -517,7 +510,7 @@ func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err err
 	query := &url.Values{}
 	query.Add("storageClass", storageClass)
 	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
-	req, err := http.NewRequest("PUT", reqURL, nil)
+	req, err := newHttpRequestWithHeader("PUT", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -537,7 +530,7 @@ func (u *UFileRequest) Rename(keyName, newKeyName, force string) (err error) {
 	query.Add("force", force)
 	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
 
-	req, err := http.NewRequest("PUT", reqURL, nil)
+	req, err := newHttpRequestWithHeader("PUT", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return err
 	}
@@ -554,11 +547,11 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 
 	reqURL := u.genFileURL(dstkeyName)
 
-	req, err := http.NewRequest("PUT", reqURL, nil)
+	req, err := newHttpRequestWithHeader("PUT", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return err
 	}
-	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+	req.Header.Add("X-Ufile-Copy-Source", "/"+srcBucketName+"/"+srcKeyName)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
@@ -581,7 +574,7 @@ func (u *UFileRequest) ListObjects(prefix, marker, delimiter string, maxkeys int
 	query.Add("max-keys", strconv.Itoa(maxkeys))
 	reqURL := u.genFileURL("") + "?listobjects&" + query.Encode()
 
-	req, err := http.NewRequest("GET", reqURL, nil)
+	req, err := newHttpRequestWithHeader("GET", reqURL, nil, u.RequestHeader)
 	if err != nil {
 		return
 	}
