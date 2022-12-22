@@ -95,31 +95,6 @@ type CommonPreInfo struct {
 	Prefix string `json:"Prefix,omitempty"`
 }
 
-//UploadHit 文件秒传，它的原理是计算出文件的 etag 值与远端服务器进行对比，如果文件存在就快速返回。
-func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
-	file, err := openFile(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	fsize := getFileSize(file)
-	etag := calculateEtag(file)
-
-	query := &url.Values{}
-	query.Add("Hash", etag)
-	query.Add("FileName", keyName)
-	query.Add("FileSize", strconv.FormatInt(fsize, 10))
-	reqURL := u.genFileURL("uploadhit") + "?" + query.Encode()
-	req, err := http.NewRequest("POST", reqURL, nil)
-	if err != nil {
-		return err
-	}
-	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
-	req.Header.Add("authorization", authorization)
-
-	return u.request(req)
-}
-
 //PostFile 使用 HTTP Form 的方式上传一个文件。
 //注意：使用本接口上传文件后，调用 UploadHit 接口会返回 404，因为经过 form 包装的文件，etag 值会不一样，所以会调用失败。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
@@ -516,26 +491,6 @@ func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err err
 	query := &url.Values{}
 	query.Add("storageClass", storageClass)
 	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
-	req, err := http.NewRequest("PUT", reqURL, nil)
-	if err != nil {
-		return err
-	}
-	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
-	req.Header.Add("authorization", authorization)
-	return u.request(req)
-}
-
-//Rename 重命名指定文件
-//keyName 需要被重命名的源文件
-//newKeyName 修改后的新文件名
-//force 如果已存在同名文件，值为"true"则覆盖，否则会操作失败
-func (u *UFileRequest) Rename(keyName, newKeyName, force string) (err error) {
-
-	query := url.Values{}
-	query.Add("newFileName", newKeyName)
-	query.Add("force", force)
-	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
-
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
 		return err
