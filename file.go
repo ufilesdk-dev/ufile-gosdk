@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
-	"encoding/base64"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -93,31 +93,6 @@ type ObjectInfo struct {
 //Prefix 以Delimiter结尾的公共前缀目录名
 type CommonPreInfo struct {
 	Prefix string `json:"Prefix,omitempty"`
-}
-
-//UploadHit 文件秒传，它的原理是计算出文件的 etag 值与远端服务器进行对比，如果文件存在就快速返回。
-func (u *UFileRequest) UploadHit(filePath, keyName string) (err error) {
-	file, err := openFile(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	fsize := getFileSize(file)
-	etag := calculateEtag(file)
-
-	query := &url.Values{}
-	query.Add("Hash", etag)
-	query.Add("FileName", keyName)
-	query.Add("FileSize", strconv.FormatInt(fsize, 10))
-	reqURL := u.genFileURL("uploadhit") + "?" + query.Encode()
-	req, err := http.NewRequest("POST", reqURL, nil)
-	if err != nil {
-		return err
-	}
-	authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
-	req.Header.Add("authorization", authorization)
-
-	return u.request(req)
 }
 
 //PostFile 使用 HTTP Form 的方式上传一个文件。
@@ -325,7 +300,6 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
-
 //DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 //keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
@@ -526,26 +500,6 @@ func (u *UFileRequest) ClassSwitch(keyName string, storageClass string) (err err
 	return u.request(req)
 }
 
-//Rename 重命名指定文件
-//keyName 需要被重命名的源文件
-//newKeyName 修改后的新文件名
-//force 如果已存在同名文件，值为"true"则覆盖，否则会操作失败
-func (u *UFileRequest) Rename(keyName, newKeyName, force string) (err error) {
-
-	query := url.Values{}
-	query.Add("newFileName", newKeyName)
-	query.Add("force", force)
-	reqURL := u.genFileURL(keyName) + "?" + query.Encode()
-
-	req, err := http.NewRequest("PUT", reqURL, nil)
-	if err != nil {
-		return err
-	}
-	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
-	req.Header.Add("authorization", authorization)
-	return u.request(req)
-}
-
 //Copy 从同组织下的源Bucket中拷贝指定文件到目的Bucket中，并以新文件名命名
 //dstkeyName 拷贝到目的Bucket后的新文件名
 //srcBucketName 待拷贝文件所在的源Bucket名称
@@ -558,7 +512,7 @@ func (u *UFileRequest) Copy(dstkeyName, srcBucketName, srcKeyName string) (err e
 	if err != nil {
 		return err
 	}
-	req.Header.Add("X-Ufile-Copy-Source", "/" + srcBucketName + "/" + srcKeyName)
+	req.Header.Add("X-Ufile-Copy-Source", "/"+srcBucketName+"/"+srcKeyName)
 
 	authorization := u.Auth.Authorization("PUT", u.BucketName, dstkeyName, req.Header)
 	req.Header.Add("authorization", authorization)
