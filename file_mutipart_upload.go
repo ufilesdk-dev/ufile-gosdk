@@ -266,6 +266,48 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	return nil
 }
 
+//UploadPartCopy 实现从一个已存在的Object中拷贝数据来上传一个Part。
+func (u *UFileRequest) UploadPartCopy(state *MultipartState, partNumber int, sourceBucketName, sourceObject string, offset, size int64) error {
+	query := &url.Values{}
+	query.Add("uploadId", state.uploadID)
+	query.Add("partNumber", strconv.Itoa(partNumber))
+
+	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
+	req, err := http.NewRequest("PUT", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("X-Ufile-Copy-Source", fmt.Sprintf("/%s/%s", sourceBucketName, sourceObject))
+	req.Header.Add("X-Ufile-Copy-Source-Range", fmt.Sprintf("bytes=%d-%d", offset, offset+size-1))
+	req.Header.Add("Content-Type", state.mimeType)
+	authorization := u.Auth.Authorization("PUT", u.BucketName, state.keyName, req.Header)
+	req.Header.Add("Authorization", authorization)
+
+	resp, err := u.requestWithResp(req)
+	if err != nil {
+		return err
+	}
+
+	if !VerifyHTTPCode(resp.StatusCode) {
+		err = u.responseParse(resp)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	defer resp.Body.Close()
+
+	etag := strings.Trim(resp.Header.Get("Etag"), "\"") //为保证线程安全，这里就不保留 lastResponse
+	if etag == "" {
+		etag = strings.Trim(resp.Header.Get("ETag"), "\"") //为保证线程安全，这里就不保留 lastResponse
+	}
+	state.mux.Lock()
+	state.etags[partNumber] = etag
+	state.mux.Unlock()
+	return nil
+}
+
 //FinishMultipartUpload 完成分片上传。分片上传必须要调用的接口。
 //state 参数是 InitiateMultipartUpload 返回的
 func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
