@@ -604,3 +604,6 @@ if err != nil {
 > - UCloud US3 [官方网站](https://www.ucloud.cn/site/product/ufile.html)
 > - UCloud US3 [官方文档中心](https://docs.ucloud.cn/ufile/README)
 > - UCloud 官方技术支持：[提交工单](https://accountv2.ucloud.cn/work_ticket/create)
+
+## 许可证
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0.html)      
