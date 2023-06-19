@@ -208,14 +208,14 @@ func SplitFileByPartSize(fileSize, partSize int64) ([]FilePart, error) {
 	var parts []FilePart
 	var part = FilePart{}
 	for i := int64(0); i < partN; i++ {
-		part.Number = int(i + 1)
+		part.Number = int(i)
 		part.Offset = i * partSize
 		part.Size = partSize
 		parts = append(parts, part)
 	}
 
 	if fileSize%partSize > 0 {
-		part.Number = len(parts) + 1
+		part.Number = len(parts)
 		part.Offset = int64(len(parts)) * partSize
 		part.Size = fileSize % partSize
 		parts = append(parts, part)
