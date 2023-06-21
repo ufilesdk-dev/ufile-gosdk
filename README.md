@@ -4,6 +4,9 @@
 > The best modules are where interface is much simpler than implementation.  
 > **By: John Ousterhout**
 
+
+[![Software License](https://img.shields.io/github/license/saltstack/salt)](LICENSE)
+
 Table of Contents
 =================
 
