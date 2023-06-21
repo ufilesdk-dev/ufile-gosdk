@@ -1,11 +1,12 @@
 
-# UCloud 对象存储 SDK <a href="https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk"><img src="https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk?status.svg" alt="GoDoc"></a>
+# UCloud 对象存储 SDK <a href="https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk"><img src="https://godoc.org/github.com/ufilesdk-dev/ufile-gosdk?status.svg" alt="GoDoc"></a>  
+
+[![Software License](https://img.shields.io/github/license/saltstack/salt)](LICENSE)
+
 > Modules are interface and implementation.  
 > The best modules are where interface is much simpler than implementation.  
 > **By: John Ousterhout**
 
-
-[![Software License](https://img.shields.io/github/license/saltstack/salt)](LICENSE)
 
 Table of Contents
 =================
