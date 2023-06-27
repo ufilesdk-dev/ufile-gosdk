@@ -24,6 +24,53 @@ type MultipartState struct {
 	mux      sync.Mutex
 }
 
+type Part struct {
+	Etag    string
+	Size    int
+	PartNum int
+	// LastModified int // 目前的需求里用不到。如果加上，[]Part 中每个元素的格式可能无法保持一致
+}
+
+type UploadIdDataSet struct {
+	UploadId     string `json:"UploadId,omitempty"`
+	FileName     string `json:"FileName,omitempty"`
+	StartTime    int    `json:"StartTime,omitempty"`
+	StroageClass string `json:"StroageClass,omitempty"`
+}
+
+type UploadIdResponse struct {
+	NextMarker       string            `json:"NextMarker,omitempty"`
+	UploadIdMarker   string            `json:"UploadIdMarker,omitempty"`
+	NextUploadMarker string            `json:"NextUploadMarker,omitempty"`
+	Prefix           string            `json:"Prefix,omitempty"`
+	Limit            int               `json:"Limit,omitempty"`
+	IsTruncated      bool              `json:"IsTruncated,omitempty"`
+	DataSet          []UploadIdDataSet `json:"DataSet,omitempty"`
+}
+
+type UploadPartResponse struct {
+	Key                  string `json:"Key,omitempty"`
+	StroageClass         string `json:"UploadIdMarker,omitempty"`
+	UploadId             string `json:"UploadId,omitempty"`
+	Status               int    `json:"Status,omitempty"`
+	IsTruncated          bool   `json:"IsTruncated,omitempty"`
+	NextPartNumberMarker int    `json:"NextPartNumberMarker,omitempty"`
+	Parts                []Part `json:"Parts,omitempty"`
+}
+
+func (m *MultipartState) GenerateMultipartState(blkSize int, uploadID, mimeType, keyName string, parts []*Part) {
+	m.BlkSize = blkSize
+	m.uploadID = uploadID
+	m.mimeType = mimeType
+	m.keyName = keyName
+	m.etags = make(map[int]string)
+	m.mux.Lock()
+	defer m.mux.Unlock()
+	for _, part := range parts {
+		m.etags[part.PartNum] = part.Etag
+	}
+}
+
 //UnmarshalJSON custom unmarshal json
 func (m *MultipartState) UnmarshalJSON(bytes []byte) error {
 	tmp := struct {
@@ -266,6 +313,51 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 	return nil
 }
 
+// 上传一个分片。构造并返回一个 Part
+func (u *UFileRequest) UploadPartRetPart(buf *bytes.Buffer, state *MultipartState, partNumber int) (*Part, error) {
+	size := buf.Len()
+
+	query := &url.Values{}
+	query.Add("uploadId", state.uploadID)
+	query.Add("partNumber", strconv.Itoa(partNumber))
+
+	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
+	req, err := http.NewRequest("PUT", reqURL, buf)
+	if err != nil {
+		return nil, err
+	}
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(buf.Bytes()))
+		req.Header.Add("Content-MD5", md5Str)
+	}
+
+	req.Header.Add("Content-Type", state.mimeType)
+	authorization := u.Auth.Authorization("PUT", u.BucketName, state.keyName, req.Header)
+	req.Header.Add("Authorization", authorization)
+	req.Header.Add("Content-Length", strconv.Itoa(buf.Len()))
+
+	resp, err := u.requestWithResp(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	etag := strings.Trim(resp.Header.Get("Etag"), "\"") //为保证线程安全，这里就不保留 lastResponse
+	if etag == "" {
+		etag = strings.Trim(resp.Header.Get("ETag"), "\"") //为保证线程安全，这里就不保留 lastResponse
+	}
+	state.mux.Lock()
+	state.etags[partNumber] = etag
+	state.mux.Unlock()
+
+	part := &Part{
+		Etag:    etag,
+		Size:    size,
+		PartNum: partNumber,
+	}
+	return part, nil
+}
+
 //FinishMultipartUpload 完成分片上传。分片上传必须要调用的接口。
 //state 参数是 InitiateMultipartUpload 返回的
 func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
@@ -291,6 +383,83 @@ func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	req.Header.Add("Content-Length", strconv.Itoa(len(etagsStr)))
 
 	return u.request(req)
+}
+
+// 获取当前 bucket 正在进行分片上传的，但未 finish 的 upload 事件（即所有 multiState）
+func (u *UFileRequest) GetMultiUploadId(prefix, marker, uploadIdMarker string, limit int) (list UploadIdResponse, err error) {
+	query := &url.Values{}
+	query.Add("muploadid", "")
+	if prefix != "" {
+		query.Add("prefix", prefix)
+	}
+	if marker != "" {
+		query.Add("marker", marker)
+	}
+	if limit != 0 {
+		query.Add("limit", strconv.Itoa(limit))
+	}
+	if uploadIdMarker != "" {
+		query.Add("upload-id-marker", uploadIdMarker)
+	}
+
+	reqURL := u.baseURL.String() + "?" + query.Encode()
+
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return
+	}
+
+	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
+	req.Header.Add("authorization", authorization)
+
+	err = u.request(req)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(u.LastResponseBody, &list)
+	return
+}
+
+func (u *UFileRequest) GetMultiUploadPart(uploadId string, maxParts, partNumberMarker int) (parts []*Part, err error) {
+	query := &url.Values{}
+	query.Add("muploadpart", "")
+	query.Add("uploadId", uploadId)
+	if maxParts < 0 || maxParts > 1000 {
+		maxParts = 1000
+	}
+	query.Add("max-parts", strconv.Itoa(maxParts))
+	if partNumberMarker < 0 {
+		partNumberMarker = 0
+	}
+	query.Add("part-number-marker", strconv.Itoa(partNumberMarker))
+
+	reqURL := u.baseURL.String() + "?" + query.Encode()
+
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return
+	}
+
+	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
+	req.Header.Add("authorization", authorization)
+
+	err = u.request(req)
+	if err != nil {
+		return
+	}
+
+	var uploadPartResponse UploadPartResponse
+	err = json.Unmarshal(u.LastResponseBody, &uploadPartResponse)
+	if err != nil {
+		return
+	}
+
+	for _, part := range uploadPartResponse.Parts {
+		tmp := part
+		parts = append(parts, &tmp)
+	}
+	return
 }
 
 func divideCeil(a, b int64) int {

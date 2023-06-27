@@ -419,6 +419,43 @@ func (u *UFileRequest) DownloadFile(writer io.Writer, keyName string) error {
 	return err
 }
 
+func (u *UFileRequest) DownloadFileRetRespBody(keyName string, offset int64) (io.ReadCloser, error) {
+	reqURL := u.GetPrivateURL(keyName, 24*time.Hour)
+	req, err := http.NewRequest("GET", reqURL, nil)
+	req.Header.Add("Range", "bytes="+strconv.FormatInt(offset, 10)+"-")
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := u.requestWithResp(req)
+	if err != nil {
+		return nil, err
+	}
+
+	u.LastResponseStatus = resp.StatusCode
+	u.LastResponseHeader = resp.Header
+	u.LastResponseBody = nil // 不要保存到内存！！！超过 128MB 的 body 会撑爆内存（其实似乎是因为 []byte 的最大容量为 128MB）
+	u.lastResponse = resp
+
+	if !VerifyHTTPCode(resp.StatusCode) {
+		// 如果 req 出错，此时可以将 resp.Body 保存到内存里，因为 resp.Body 里就只有 RetCode ErrMsg 等信息
+		defer resp.Body.Close()
+		resBody, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		u.LastResponseBody = resBody
+		return nil, fmt.Errorf("Remote response code is %d - %s not 2xx call DumpResponse(true) show details",
+			resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	size := u.LastResponseHeader.Get("Content-Length")
+	fileSize, err := strconv.ParseInt(size, 10, 0)
+	if err != nil || fileSize < 0 {
+		return nil, fmt.Errorf("Parse content-lengt returned error")
+	}
+	return resp.Body, nil
+}
+
 //DownloadFileWithIopString 支持下载iop，直接指定iop命令字符串
 func (u *UFileRequest) DownloadFileWithIopString(writer io.Writer, keyName string, iopcmd string) error {
 
