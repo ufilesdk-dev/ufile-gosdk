@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -187,4 +188,38 @@ func structPrettyStr(data interface{}) string {
 		return fmt.Sprintf("%s\n", bytes)
 	}
 	return ""
+}
+
+// FilePart is the file part definition
+type FilePart struct {
+	Number int   // Part number
+	Offset int64 // Part offset
+	Size   int64 // Part size
+}
+
+// SplitFileByPartSize splits big file into parts by the size of parts.
+// Splits the file by the part size. Returns the FilePart when error is nil.
+func SplitFileByPartSize(fileSize, partSize int64) ([]FilePart, error) {
+	if fileSize <= 0 || partSize <= 0 {
+		return nil, errors.New("fileSize or partSize invalid")
+	}
+
+	var partN = fileSize / partSize
+	var parts []FilePart
+	var part = FilePart{}
+	for i := int64(0); i < partN; i++ {
+		part.Number = int(i)
+		part.Offset = i * partSize
+		part.Size = partSize
+		parts = append(parts, part)
+	}
+
+	if fileSize%partSize > 0 {
+		part.Number = len(parts)
+		part.Offset = int64(len(parts)) * partSize
+		part.Size = fileSize % partSize
+		parts = append(parts, part)
+	}
+
+	return parts, nil
 }
