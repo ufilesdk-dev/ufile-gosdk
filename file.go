@@ -597,7 +597,7 @@ func (u *UFileRequest) GetObjectTagging(keyName string) (*TagSet, error) {
 	return tags, nil
 }
 
-//DeleteObjectTagging PutObjectTagging 删除Tagging
+//DeleteObjectTagging 删除Tagging
 func (u *UFileRequest) DeleteObjectTagging(keyName string) (err error) {
 	reqURL := u.genFileURL(keyName) + "?tagging"
 	req, err := http.NewRequest("DELETE", reqURL, nil)
