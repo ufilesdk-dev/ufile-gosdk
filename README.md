@@ -25,7 +25,6 @@ Table of Contents
 	* [对象/文件管理](#对象/文件管理)
         * [普通上传](#普通上传)
         * [表单上传](#表单上传)
-        * [秒传](#秒传)
 		* [流式上传](#流式上传)
         * [分片上传](#分片上传)
 		* [上传回调](#上传回调)
@@ -36,7 +35,6 @@ Table of Contents
         * [文件存储类型转换](#文件存储类型转换)
         * [比较本地文件和远程文件etag](#比较本地文件和远程文件etag)
         * [文件拷贝](#文件拷贝)
-        * [文件重命名](#文件重命名)
 		* [前缀列表查询](#前缀列表查询)
         * [获取目录文件列表](#获取目录文件列表)
 * [文档说明](#文档说明)
@@ -235,29 +233,6 @@ if err != nil {
 
 [回到目录](#table-of-contents)
 
-<a name="秒传"></a>
-### 秒传
-
-- demo程序
-
-```go
-// 加载配置，创建请求
-config, err := ufsdk.LoadConfig("config.json")
-if err != nil {
-	panic(err.Error())
-}
-req, err := ufsdk.NewFileRequest(config, nil)
-if err != nil {
-	panic(err.Error())
-}
-
-err = req.UploadHit("FilePath", "KeyName")
-if err != nil {
-	log.Println("DumpResponse：", string(req.DumpResponse(true)))
-}
-```
-
-[回到目录](#table-of-contents)
 
 <a name="流式上传"></a>
 ### 流式上传
@@ -520,30 +495,6 @@ if err != nil {
 	panic(err.Error())
 }
 err = req.Copy("DstkeyName", "SrcBucketName", "SrcKeyName")
-if err != nil {
-	log.Println("DumpResponse：", string(req.DumpResponse(true)))
-}
-```
-
-[回到目录](#table-of-contents)
-
-
-<a name="文件重命名"></a>
-### 文件重命名
-
-- demo程序
-
-```go
-config, err := ufsdk.LoadConfig("config.json")
-if err != nil {
-	panic(err.Error())
-}
-req, err := ufsdk.NewFileRequest(config, nil)
-if err != nil {
-	panic(err.Error())
-}
-force := true // 为true则强制重命名
-err = req.Rename("KeyName", "KeyName", force)
 if err != nil {
 	log.Println("DumpResponse：", string(req.DumpResponse(true)))
 }
