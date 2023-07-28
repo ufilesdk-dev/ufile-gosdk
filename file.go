@@ -96,7 +96,6 @@ type CommonPreInfo struct {
 }
 
 //PostFile 使用 HTTP Form 的方式上传一个文件。
-//注意：使用本接口上传文件后，调用 UploadHit 接口会返回 404，因为经过 form 包装的文件，etag 值会不一样，所以会调用失败。
 //mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 //keyName 表示传到 ufile 的文件名。
 //小于 100M 的文件推荐使用本接口上传。

@@ -82,30 +82,13 @@ func scheduleUploadhelper(filePath, keyName string, uploadType int, req *ufsdk.U
 	}
 	log.Println("文件上传成功!!")
 	log.Println("公有空间文件下载 URL 是：", req.GetPublicURL(keyName))
-	log.Println("私有空间文件下载 URL 是：", req.GetPrivateURL(keyName, 24*60*60 * time.Second)) //过期时间为一天
+	log.Println("私有空间文件下载 URL 是：", req.GetPrivateURL(keyName, 24*60*60*time.Second)) //过期时间为一天
 
 	log.Println("正在获取文件的基本信息。")
 	err = req.HeadFile(keyName)
 	if err != nil {
 		log.Println("查询文件信息失败，具体错误详情：", err.Error())
 		return
-	}
-
-	log.Println("正在秒传文件...")
-	err = req.UploadHit(filePath, keyName)
-	if err != nil {
-		log.Println("文件秒传失败，错误信息为：", err.Error())
-	} else {
-		log.Printf("操作成功，秒传文件返回的信息是：%s\n", req.LastResponseBody)
-	}
-
-	log.Println("正在重命名文件...")
-	newKeyName := "test_newKey_" + keyName
-	err = req.Rename(keyName, newKeyName, "")
-	if err != nil {
-		log.Println("文件重命名失败，错误信息为：", err.Error())
-	} else {
-		log.Printf("操作成功，重命名文件返回的信息是：%s\n", req.LastResponseBody)
 	}
 
 	log.Println("正在拷贝文件...")
