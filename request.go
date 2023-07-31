@@ -166,7 +166,7 @@ func (u *UFileRequest) request(req *http.Request) error {
 }
 
 func (u *UFileRequest) requestWithResp(req *http.Request) (resp *http.Response, err error) {
-	req.Header.Set("User-Agent", "UFileGoSDK/1.0.4")
+	req.Header.Set("User-Agent", "UFileGoSDK/1.0.5")
 
 	// cover current request headers with user defined headers
 	if u.RequestHeader != nil {
