@@ -39,6 +39,25 @@ func (m *MultipartState) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
+type Part struct {
+	PartNum      uint32 `json:"PartNum"`
+	LastModified int64  `json:"LastModified"`
+	Etag         string `json:"Etag"`
+	Size         uint32 `json:"Size"`
+}
+
+type ListPartsResponse struct {
+	Bucket               string `json:"Bucket"`
+	Key                  string `json:"Key"`
+	StorageClass         string `json:"StorageClass"`
+	UploadID             string `json:"UploadId"`
+	Status               int32  `json:"Status"`
+	NextPartNumberMarker uint32 `json:"NextPartNumberMarker"`
+	MaxParts             uint32 `json:"MaxParts"`
+	IsTruncated          bool   `json:"IsTruncated"`
+	Parts                []Part `json:"Parts"`
+}
+
 type uploadChan struct {
 	etag string
 	err  error
@@ -339,4 +358,32 @@ func divideCeil(a, b int64) int {
 	div := float64(a) / float64(b)
 	c := math.Ceil(div)
 	return int(c)
+}
+
+//ListParts 获取已上传成功的分片列表
+func (u *UFileRequest) ListParts(uploadId string, maxParts, partNumberMarker int) (list ListPartsResponse, err error) {
+	if maxParts == 0 {
+		maxParts = 100
+	}
+	query := &url.Values{}
+	query.Add("uploadId", uploadId)
+	query.Add("max-parts", strconv.Itoa(maxParts))
+	query.Add("part-number-marker", strconv.Itoa(partNumberMarker))
+
+	reqURL := u.genFileURL("") + "?muploadpart&" + query.Encode()
+
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return
+	}
+
+	authorization := u.Auth.Authorization("GET", u.BucketName, "", req.Header)
+	req.Header.Add("authorization", authorization)
+
+	err = u.request(req)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(u.LastResponseBody, &list)
+	return
 }
