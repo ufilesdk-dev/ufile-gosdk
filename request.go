@@ -20,7 +20,6 @@ import (
 //3.只简单封装 HTTP 请求所需要的参数，给接口使用者提供所有原生的 HTTP response header,body,status code 返回，以便排错。
 //
 //4.远端请求返回值统一返回一个 error，如果为 nil 表示无错。LastResponseStatus，LastResponseHeader，LastResponseBody 可以查看具体的 HTTP 返回信息（）。如果你想少敲几行代码可以直接调用 DumpResponse(true) 查看详细返回。
-//
 type UFileRequest struct {
 	Auth          Auth
 	BucketName    string
@@ -167,7 +166,7 @@ func (u *UFileRequest) request(req *http.Request) error {
 }
 
 func (u *UFileRequest) requestWithResp(req *http.Request) (resp *http.Response, err error) {
-	req.Header.Set("User-Agent", "UFileGoSDK/2.02")
+	req.Header.Set("User-Agent", "UFileGoSDK/1.0.5")
 
 	// cover current request headers with user defined headers
 	if u.RequestHeader != nil {

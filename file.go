@@ -549,3 +549,61 @@ func (u *UFileRequest) ListObjects(prefix, marker, delimiter string, maxkeys int
 	err = json.Unmarshal(u.LastResponseBody, &list)
 	return
 }
+
+type Tag struct {
+	Key   string `json:"Key"`
+	Value string `json:"Value"`
+}
+
+type TagSet struct {
+	Tags []Tag `json:"Tags"`
+}
+
+//PutObjectTagging 设置或更新Tagging
+func (u *UFileRequest) PutObjectTagging(keyName string, tags *TagSet) (err error) {
+	body, err := json.Marshal(tags)
+	if err != nil {
+		return err
+	}
+	reqURL := u.genFileURL(keyName) + "?tagging"
+	req, err := http.NewRequest("PUT", reqURL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
+}
+
+//GetObjectTagging 获取Tagging
+func (u *UFileRequest) GetObjectTagging(keyName string) (*TagSet, error) {
+	reqURL := u.genFileURL(keyName) + "?tagging"
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	authorization := u.Auth.Authorization("GET", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	err = u.request(req)
+	if err != nil {
+		return nil, err
+	}
+	tags := &TagSet{}
+	err = json.Unmarshal(u.LastResponseBody, tags)
+	if err != nil {
+		return nil, err
+	}
+	return tags, nil
+}
+
+//DeleteObjectTagging 删除Tagging
+func (u *UFileRequest) DeleteObjectTagging(keyName string) (err error) {
+	reqURL := u.genFileURL(keyName) + "?tagging"
+	req, err := http.NewRequest("DELETE", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	authorization := u.Auth.Authorization("DELETE", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
+}
