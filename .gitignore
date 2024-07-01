@@ -3,4 +3,4 @@ example/*.txt
 *.exe
 *.png
 *.jpg
-
+.idea/
