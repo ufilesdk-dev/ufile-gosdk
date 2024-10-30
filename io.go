@@ -44,7 +44,6 @@ func (u *UFileRequest) IOPut(reader io.Reader, keyName, mimeType string) (err er
 	return u.request(req)
 }
 
-//
 // IOMutipartAsyncUpload 流式分片上传接口，你必须确保你的 reader 接口每次调用是递进式的调用，也就是像文件那样的读取方式。
 // mimeType 在这里的检测不会很准确，你可以手动指定更精确的 mimetype。
 // 这里的会每次读取4M 的数据到 buffer 里面，适用于大量数据上传。
@@ -72,20 +71,27 @@ func (u *UFileRequest) IOMutipartAsyncUpload(reader io.Reader, keyName, mimeType
 		}
 
 		chunk := make([]byte, state.BlkSize)
-		bytesRead, readErr := reader.Read(chunk)
-		if readErr == io.EOF || bytesRead == 0 {
-			break
+		totalBytesRead := 0
+		for totalBytesRead < state.BlkSize {
+			bytesRead, readErr := reader.Read(chunk[totalBytesRead:])
+			if readErr != nil && readErr != io.EOF {
+				u.AbortMultipartUpload(state)
+				return readErr // Handle read error
+			}
+			totalBytesRead += bytesRead
+			if readErr == io.EOF {
+				break // End of file reached
+			}
 		}
-		if readErr != nil {
-			u.AbortMultipartUpload(state)
-			return uploadErr // 检查读文件是否出现错误。
+		if totalBytesRead == 0 {
+			break // No more data to read
 		}
 		wg.Add(1)
 		go func(pos int, buf *bytes.Buffer) {
 			defer wg.Done()
 			e := u.UploadPart(buf, state, pos)
 			concurrentChan <- e //跑完一个 goroutine 后，发信号表示可以开启新的 goroutine。
-		}(i, bytes.NewBuffer(chunk[:bytesRead]))
+		}(i, bytes.NewBuffer(chunk[:totalBytesRead]))
 	}
 
 	go func() {
