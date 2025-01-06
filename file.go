@@ -377,6 +377,29 @@ func (u *UFileRequest) GetPrivateURL(keyName string, expiresDuation time.Duratio
 	return reqURL + "?" + query.Encode()
 }
 
+//GenPresignedURL 生成文件请求的签名URL。
+//keyName 表示请求 ufile 的文件名。
+//expiresDuation 表示链接的过期时间，从现在算起，24 * time.Hour 表示过期时间为一天。
+//method 表示http请求的method。
+//请求的query和header加入到UFileRequest中
+func (u *UFileRequest) GenPresignedURL(keyName string, expiresDuation time.Duration, method string) string {
+	t := time.Now()
+	t = t.Add(expiresDuation)
+	expires := strconv.FormatInt(t.Unix(), 10)
+	signature, publicKey := u.Auth.AuthorizationPrivateURL(method, u.BucketName, keyName, expires, u.RequestHeader)
+	query := url.Values{}
+	for k, v := range u.RequestQuery {
+		for i := 0; i < len(v); i++ {
+			query.Add(k, v[i])
+		}
+	}
+	query.Set("UCloudPublicKey", publicKey)
+	query.Set("Signature", signature)
+	query.Set("Expires", expires)
+	reqURL := u.genFileURL(keyName)
+	return reqURL + "?" + query.Encode()
+}
+
 // Download 把文件下载到 HTTP Body 里面，这里只能用来下载小文件，建议使用 DownloadFile 来下载大文件。
 func (u *UFileRequest) Download(reqURL string) error {
 	req, err := http.NewRequest("GET", reqURL, nil)

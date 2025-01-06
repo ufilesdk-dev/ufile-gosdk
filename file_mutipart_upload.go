@@ -14,17 +14,17 @@ import (
 	"sync"
 )
 
-//MultipartState 用于保存分片上传的中间状态
+// MultipartState 用于保存分片上传的中间状态
 type MultipartState struct {
 	BlkSize  int //服务器返回的分片大小
-	uploadID string
+	UploadID string
 	mimeType string
 	keyName  string
-	etags    map[int]string
+	Etags    map[int]string
 	mux      sync.Mutex
 }
 
-//UnmarshalJSON custom unmarshal json
+// UnmarshalJSON custom unmarshal json
 func (m *MultipartState) UnmarshalJSON(bytes []byte) error {
 	tmp := struct {
 		BlkSize  int    `json:"BlkSize"`
@@ -35,7 +35,7 @@ func (m *MultipartState) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 	m.BlkSize = tmp.BlkSize
-	m.uploadID = tmp.UploadID
+	m.UploadID = tmp.UploadID
 	return nil
 }
 
@@ -63,10 +63,10 @@ type uploadChan struct {
 	err  error
 }
 
-//MPut 分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是同步一片一片的上传。
-//mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
-//keyName 表示传到 ufile 的文件名。
-//大于 100M 的文件推荐使用本接口上传。
+// MPut 分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是同步一片一片的上传。
+// mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+// keyName 表示传到 ufile 的文件名。
+// 大于 100M 的文件推荐使用本接口上传。
 func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 	file, err := openFile(filePath)
 	if err != nil {
@@ -101,16 +101,16 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 	return u.FinishMultipartUpload(state)
 }
 
-//AsyncMPut 异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
-//mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
-//keyName 表示传到 ufile 的文件名。
-//大于 100M 的文件推荐使用本接口上传。
-//同时并发上传的分片数量为10
+// AsyncMPut 异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
+// mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+// keyName 表示传到 ufile 的文件名。
+// 大于 100M 的文件推荐使用本接口上传。
+// 同时并发上传的分片数量为10
 func (u *UFileRequest) AsyncMPut(filePath, keyName, mimeType string) error {
 	return u.AsyncUpload(filePath, keyName, mimeType, 10)
 }
 
-//AsyncUpload AsyncMPut 的升级版, jobs 表示同时并发的数量。
+// AsyncUpload AsyncMPut 的升级版, jobs 表示同时并发的数量。
 func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int) error {
 	if jobs <= 0 {
 		jobs = 1
@@ -181,11 +181,11 @@ func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int)
 	return u.FinishMultipartUpload(state)
 }
 
-//AbortMultipartUpload 取消分片上传，如果掉用 UploadPart 出现错误，可以调用本函数取消分片上传。
-//state 参数是 InitiateMultipartUpload 返回的
+// AbortMultipartUpload 取消分片上传，如果掉用 UploadPart 出现错误，可以调用本函数取消分片上传。
+// state 参数是 InitiateMultipartUpload 返回的
 func (u *UFileRequest) AbortMultipartUpload(state *MultipartState) error {
 	query := &url.Values{}
-	query.Add("uploadId", state.uploadID)
+	query.Add("uploadId", state.UploadID)
 	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
 
 	req, err := http.NewRequest("DELETE", reqURL, nil)
@@ -197,11 +197,11 @@ func (u *UFileRequest) AbortMultipartUpload(state *MultipartState) error {
 	return u.request(req)
 }
 
-//InitiateMultipartUpload 初始化分片上传，返回一个 state 用于后续的 UploadPart, FinishMultipartUpload, AbortMultipartUpload 的接口。
+// InitiateMultipartUpload 初始化分片上传，返回一个 state 用于后续的 UploadPart, FinishMultipartUpload, AbortMultipartUpload 的接口。
 //
-//keyName 表示传到 ufile 的文件名。
+// keyName 表示传到 ufile 的文件名。
 //
-//mimeType 表示文件的 mimeType, 传空会报错，你可以使用 GetFileMimeType 方法检测文件的 mimeType。如果您上传的不是文件，您可以使用 http.DetectContentType https://golang.org/src/net/http/sniff.go?s=646:688#L11进行检测。
+// mimeType 表示文件的 mimeType, 传空会报错，你可以使用 GetFileMimeType 方法检测文件的 mimeType。如果您上传的不是文件，您可以使用 http.DetectContentType https://golang.org/src/net/http/sniff.go?s=646:688#L11进行检测。
 func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*MultipartState, error) {
 	reqURL := u.genFileURL(keyName) + "?uploads"
 	req, err := http.NewRequest("POST", reqURL, nil)
@@ -231,18 +231,18 @@ func (u *UFileRequest) InitiateMultipartUpload(keyName, mimeType string) (*Multi
 		return nil, err
 	}
 	response.keyName = keyName
-	response.etags = make(map[int]string)
+	response.Etags = make(map[int]string)
 	response.mimeType = mimeType
 
 	return response, err
 }
 
-//UploadPart 上传一个分片，buf 就是分片数据，buf 的数据块大小必须为 state.BlkSize，否则会报错。
-//pardNumber 表示第几个分片，从 0 开始。例如一个文件按 state.BlkSize 分为 5 块，那么分片分别是 0,1,2,3,4。
-//state 参数是 InitiateMultipartUpload 返回的
+// UploadPart 上传一个分片，buf 就是分片数据，buf 的数据块大小必须为 state.BlkSize，否则会报错。
+// pardNumber 表示第几个分片，从 0 开始。例如一个文件按 state.BlkSize 分为 5 块，那么分片分别是 0,1,2,3,4。
+// state 参数是 InitiateMultipartUpload 返回的
 func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, partNumber int) error {
 	query := &url.Values{}
-	query.Add("uploadId", state.uploadID)
+	query.Add("uploadId", state.UploadID)
 	query.Add("partNumber", strconv.Itoa(partNumber))
 
 	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
@@ -280,15 +280,15 @@ func (u *UFileRequest) UploadPart(buf *bytes.Buffer, state *MultipartState, part
 		etag = strings.Trim(resp.Header.Get("ETag"), "\"") //为保证线程安全，这里就不保留 lastResponse
 	}
 	state.mux.Lock()
-	state.etags[partNumber] = etag
+	state.Etags[partNumber] = etag
 	state.mux.Unlock()
 	return nil
 }
 
-//UploadPartCopy 实现从一个已存在的Object中拷贝数据来上传一个Part。
+// UploadPartCopy 实现从一个已存在的Object中拷贝数据来上传一个Part。
 func (u *UFileRequest) UploadPartCopy(state *MultipartState, partNumber int, sourceBucketName, sourceObject string, offset, size int64) error {
 	query := &url.Values{}
-	query.Add("uploadId", state.uploadID)
+	query.Add("uploadId", state.UploadID)
 	query.Add("partNumber", strconv.Itoa(partNumber))
 
 	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
@@ -322,21 +322,21 @@ func (u *UFileRequest) UploadPartCopy(state *MultipartState, partNumber int, sou
 		etag = strings.Trim(resp.Header.Get("ETag"), "\"") //为保证线程安全，这里就不保留 lastResponse
 	}
 	state.mux.Lock()
-	state.etags[partNumber] = etag
+	state.Etags[partNumber] = etag
 	state.mux.Unlock()
 	return nil
 }
 
-//FinishMultipartUpload 完成分片上传。分片上传必须要调用的接口。
-//state 参数是 InitiateMultipartUpload 返回的
+// FinishMultipartUpload 完成分片上传。分片上传必须要调用的接口。
+// state 参数是 InitiateMultipartUpload 返回的
 func (u *UFileRequest) FinishMultipartUpload(state *MultipartState) error {
 	query := &url.Values{}
-	query.Add("uploadId", state.uploadID)
+	query.Add("uploadId", state.UploadID)
 	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
 	var etagsStr string
-	etagLen := len(state.etags)
+	etagLen := len(state.Etags)
 	for i := 0; i != etagLen; i++ {
-		etagsStr += state.etags[i]
+		etagsStr += state.Etags[i]
 		if i != etagLen-1 {
 			etagsStr += ","
 		}
@@ -360,7 +360,7 @@ func divideCeil(a, b int64) int {
 	return int(c)
 }
 
-//ListParts 获取已上传成功的分片列表
+// ListParts 获取已上传成功的分片列表
 func (u *UFileRequest) ListParts(uploadId string, maxParts, partNumberMarker int) (list ListPartsResponse, err error) {
 	if maxParts == 0 {
 		maxParts = 100
