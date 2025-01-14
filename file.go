@@ -113,7 +113,7 @@ func (u *UFileRequest) PostFile(filePath, keyName, mimeType string) (err error) 
 		}
 	}
 	if mimeType == "" {
-		mimeType = getMimeType(file)
+		mimeType = getMimeTypeFromFilename(filePath)
 	}
 	h.Add("Content-Type", mimeType)
 
@@ -188,7 +188,7 @@ func (u *UFileRequest) PutFile(filePath, keyName, mimeType string) error {
 	}
 
 	if mimeType == "" {
-		mimeType = getMimeType(file)
+		mimeType = getMimeTypeFromFilename(filePath)
 	}
 	req.Header.Add("Content-Type", mimeType)
 	for k, v := range u.RequestHeader {
@@ -235,7 +235,7 @@ func (u *UFileRequest) PutFileWithIopString(filePath, keyName, mimeType string, 
 	}
 
 	if mimeType == "" {
-		mimeType = getMimeType(file)
+		mimeType = getMimeTypeFromFilename(filePath)
 	}
 	req.Header.Add("Content-Type", mimeType)
 	for k, v := range u.RequestHeader {
@@ -281,7 +281,7 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	}
 
 	if mimeType == "" {
-		mimeType = getMimeType(file)
+		mimeType = getMimeTypeFromFilename(filePath)
 	}
 	req.Header.Add("Content-Type", mimeType)
 

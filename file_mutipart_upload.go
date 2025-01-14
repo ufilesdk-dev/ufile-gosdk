@@ -74,7 +74,7 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 	}
 	defer file.Close()
 	if mimeType == "" {
-		mimeType = getMimeType(file)
+		mimeType = getMimeTypeFromFilename(filePath)
 	}
 
 	state, err := u.InitiateMultipartUpload(keyName, mimeType)
@@ -126,7 +126,7 @@ func (u *UFileRequest) AsyncUpload(filePath, keyName, mimeType string, jobs int)
 	}
 	defer file.Close()
 	if mimeType == "" {
-		mimeType = getMimeType(file)
+		mimeType = getMimeTypeFromFilename(filePath)
 	}
 
 	state, err := u.InitiateMultipartUpload(keyName, mimeType)

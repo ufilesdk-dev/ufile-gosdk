@@ -14,6 +14,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"mime"
+	"path/filepath"
 )
 
 const (
@@ -29,6 +31,22 @@ type Config struct {
 	FileHost        string `json:"file_host"`
 	VerifyUploadMD5 bool   `json:"verfiy_upload_md5"`
 	Endpoint        string `json:"endpoint"`
+}
+
+var extra2Mimetype = map[string]string{
+    ".js": "application/javascript",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".xltx": "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
+    ".potx": "application/vnd.openxmlformats-officedocument.presentationml.template",
+    ".ppsx": "application/vnd.openxmlformats-officedocument.presentationml.slideshow",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".sldx": "application/vnd.openxmlformats-officedocument.presentationml.slide",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".dotx": "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    ".xlam": "application/vnd.ms-excel.addin.macroEnabled.12",
+    ".xlsb": "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
+    ".apk": "application/vnd.android.package-archive",
+    ".ipa": "application/vnd.ios.package-archive",
 }
 
 //LoadConfig 从配置文件加载一个配置。
@@ -65,10 +83,10 @@ func GetFileMimeType(path string) string {
 		return ""
 	}
 	defer f.Close()
-	return getMimeType(f)
+	return getMimeTypeFromData(f)
 }
 
-func getMimeType(f *os.File) string {
+func getMimeTypeFromData(f *os.File) string {
 	buffer := make([]byte, 512)
 	_, err := f.Seek(0, 0)
 	if err != nil {
@@ -81,6 +99,14 @@ func getMimeType(f *os.File) string {
 	}
 
 	return http.DetectContentType(buffer)
+}
+
+func getMimeTypeFromFilename(path string) string {
+	ext := filepath.Ext(path)
+	if mimetype, ok := extra2Mimetype[ext]; ok {
+		return mimetype;
+	}
+	return mime.TypeByExtension(ext)
 }
 
 func openFile(path string) (*os.File, error) {
