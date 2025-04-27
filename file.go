@@ -608,3 +608,52 @@ func (u *UFileRequest) DeleteObjectTagging(keyName string) (err error) {
 	req.Header.Add("authorization", authorization)
 	return u.request(req)
 }
+
+type Owner struct {
+	ID          string `json:"ID"`
+	DisplayName string `json:"DisplayName"`
+}
+type AccessControlList struct {
+	//Object的ACL权限:
+	//default（默认值）：继承Bucket ACL
+	//public-read：公共读
+	Grant string `json:"Grant"`
+}
+type AccessControlPolicy struct {
+	Owner             Owner             `json:"Owner"`
+	AccessControlList AccessControlList `json:"AccessControlList"`
+}
+
+// PutObjectAcl 设置或更新对象的acl
+func (u *UFileRequest) PutObjectAcl(keyName string, acl string) (err error) {
+	reqURL := u.genFileURL(keyName) + "?acl"
+	req, err := http.NewRequest("PUT", reqURL, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("x-ufile-object-acl", acl)
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	return u.request(req)
+}
+
+// GetObjectAcl 获取对象的acl
+func (u *UFileRequest) GetObjectAcl(keyName string) (string, error) {
+	reqURL := u.genFileURL(keyName) + "?acl"
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return "", err
+	}
+	authorization := u.Auth.Authorization("GET", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	err = u.request(req)
+	if err != nil {
+		return "", err
+	}
+	aclPolicy := &AccessControlPolicy{}
+	err = json.Unmarshal(u.LastResponseBody, aclPolicy)
+	if err != nil {
+		return "", err
+	}
+	return aclPolicy.AccessControlList.Grant, nil
+}
