@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -626,6 +627,9 @@ type AccessControlPolicy struct {
 
 // PutObjectAcl 设置或更新对象的acl
 func (u *UFileRequest) PutObjectAcl(keyName string, acl string) (err error) {
+	if acl != "default" && acl != "public-read" {
+		return errors.New("invalid acl")
+	}
 	reqURL := u.genFileURL(keyName) + "?acl"
 	req, err := http.NewRequest("PUT", reqURL, nil)
 	if err != nil {
