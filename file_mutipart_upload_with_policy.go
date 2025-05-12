@@ -2,8 +2,8 @@ package ufsdk
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io"
-	"encoding/base64"	
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,10 +13,10 @@ import (
 
 //带回调策略的mput 接口，一些基础函数依赖于 file_mput 定义的函数
 
-//MPut 分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是同步一片一片的上传。
-//mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
-//keyName 表示传到 ufile 的文件名。
-//大于 100M 的文件推荐使用本接口上传。
+// MPut 分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是同步一片一片的上传。
+// mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+// keyName 表示传到 ufile 的文件名。
+// 大于 100M 的文件推荐使用本接口上传。
 func (u *UFileRequest) MPutWithPolicy(filePath, keyName, mimeType string, policy_json string) error {
 	file, err := openFile(filePath)
 	if err != nil {
@@ -51,16 +51,16 @@ func (u *UFileRequest) MPutWithPolicy(filePath, keyName, mimeType string, policy
 	return u.FinishMultipartUploadWithPolicy(state, policy_json)
 }
 
-//AsyncMPut 异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
-//mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
-//keyName 表示传到 ufile 的文件名。
-//大于 100M 的文件推荐使用本接口上传。
-//同时并发上传的分片数量为10
+// AsyncMPut 异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
+// mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
+// keyName 表示传到 ufile 的文件名。
+// 大于 100M 的文件推荐使用本接口上传。
+// 同时并发上传的分片数量为10
 func (u *UFileRequest) AsyncMPutWithPolicy(filePath, keyName, mimeType string, policy_json string) error {
 	return u.AsyncUploadWithPolicy(filePath, keyName, mimeType, 10, policy_json)
 }
 
-//AsyncUpload AsyncMPut 的升级版, jobs 表示同时并发的数量。
+// AsyncUpload AsyncMPut 的升级版, jobs 表示同时并发的数量。
 func (u *UFileRequest) AsyncUploadWithPolicy(filePath, keyName, mimeType string, jobs int, policy_json string) error {
 	if jobs <= 0 {
 		jobs = 1
@@ -131,17 +131,16 @@ func (u *UFileRequest) AsyncUploadWithPolicy(filePath, keyName, mimeType string,
 	return u.FinishMultipartUploadWithPolicy(state, policy_json)
 }
 
-
-//FinishMultipartUpload 完成分片上传。分片上传必须要调用的接口。
-//state 参数是 InitiateMultipartUpload 返回的
+// FinishMultipartUpload 完成分片上传。分片上传必须要调用的接口。
+// state 参数是 InitiateMultipartUpload 返回的
 func (u *UFileRequest) FinishMultipartUploadWithPolicy(state *MultipartState, policy_json string) error {
 	query := &url.Values{}
-	query.Add("uploadId", state.uploadID)
+	query.Add("uploadId", state.UploadID)
 	reqURL := u.genFileURL(state.keyName) + "?" + query.Encode()
 	var etagsStr string
-	etagLen := len(state.etags)
+	etagLen := len(state.Etags)
 	for i := 0; i != etagLen; i++ {
-		etagsStr += state.etags[i]
+		etagsStr += state.Etags[i]
 		if i != etagLen-1 {
 			etagsStr += ","
 		}
@@ -151,7 +150,7 @@ func (u *UFileRequest) FinishMultipartUploadWithPolicy(state *MultipartState, po
 	if err != nil {
 		return err
 	}
-	
+
 	req.Header.Add("Content-Type", state.mimeType)
 
 	policy := base64.URLEncoding.EncodeToString([]byte(policy_json))
@@ -162,5 +161,3 @@ func (u *UFileRequest) FinishMultipartUploadWithPolicy(state *MultipartState, po
 
 	return u.request(req)
 }
-
-

@@ -28,6 +28,7 @@ type UFileRequest struct {
 	Context       context.Context
 	baseURL       *url.URL
 	RequestHeader http.Header
+	RequestQuery  url.Values
 
 	LastResponseStatus int
 	LastResponseHeader http.Header
