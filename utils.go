@@ -83,6 +83,14 @@ func getMimeType(f *os.File) string {
 	return http.DetectContentType(buffer)
 }
 
+func getMimeTypeFromBytes(data []byte) string {
+	if len(data) == 0 {
+		return "plain/text"
+	}
+
+	return http.DetectContentType(data)
+}
+
 func openFile(path string) (*os.File, error) {
 	return os.Open(path)
 }

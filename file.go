@@ -300,6 +300,43 @@ func (u *UFileRequest) PutFileWithPolicy(filePath, keyName, mimeType string, pol
 	return u.request(req)
 }
 
+// PutFileWithData 把直接将传入的数据放到 HTTP Body 里面上传
+// keyName 表示传到 ufile 的文件名。
+// mimeType 如果为空的，会调用 net/http 里面的 DetectContentType 进行检测。
+// data 表示要上传的数据内容。
+// 小于 100M 的文件推荐使用本接口上传。
+func (u *UFileRequest) PutFileWithData(keyName, mimeType string, data []byte) error {
+	reqURL := u.genFileURL(keyName)
+
+	req, err := http.NewRequest("PUT", reqURL, bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+
+	if mimeType == "" {
+		mimeType = getMimeTypeFromBytes(data)
+	}
+
+	req.Header.Add("Content-Type", mimeType)
+	for k, v := range u.RequestHeader {
+		for i := 0; i < len(v); i++ {
+			req.Header.Add(k, v[i])
+		}
+	}
+
+	if u.verifyUploadMD5 {
+		md5Str := fmt.Sprintf("%x", md5.Sum(data))
+		req.Header.Add("Content-MD5", md5Str)
+	}
+
+	authorization := u.Auth.Authorization("PUT", u.BucketName, keyName, req.Header)
+	req.Header.Add("authorization", authorization)
+	fileSize := len(data)
+	req.Header.Add("Content-Length", strconv.FormatInt(int64(fileSize), 10))
+
+	return u.request(req)
+}
+
 // DeleteFile 删除一个文件，如果删除成功 statuscode 会返回 204，否则会返回 404 表示文件不存在。
 // keyName 表示传到 ufile 的文件名。
 func (u *UFileRequest) DeleteFile(keyName string) error {
