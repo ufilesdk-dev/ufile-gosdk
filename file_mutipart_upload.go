@@ -101,6 +101,34 @@ func (u *UFileRequest) MPut(filePath, keyName, mimeType string) error {
 	return u.FinishMultipartUpload(state)
 }
 
+// MCopy 从同组织下的源Bucket中拷贝指定文件到目的Bucket中，并以新文件名命名
+// 按分片拷贝，适用于大文件拷贝
+// dstkeyName 拷贝到目的Bucket后的新文件名
+// srcBucketName 待拷贝文件所在的源Bucket名称
+// srcKeyName 待拷贝文件名称
+// fileSize 待拷贝文件的大小
+func(u *UFileRequest) MCopy(dstkeyName, srcBucketName, srcKeyName string, fileSize int64) error {
+	state, err := u.InitiateMultipartUpload(dstkeyName, "") //初始化分片上传
+	if err != nil {
+		return err
+	}
+	parts, err := SplitFileByPartSize(fileSize, int64(state.BlkSize))
+	if err != nil {
+		return err
+	}
+
+	for _, part := range parts {
+		// 拷贝分片
+		err = u.UploadPartCopy(state, part.Number, srcBucketName, srcKeyName, part.Offset, part.Size)
+		if err != nil {
+				u.AbortMultipartUpload(state)
+				return err
+		}
+	}
+
+	return u.FinishMultipartUpload(state) // 完成分片上传
+}
+
 // AsyncMPut 异步分片上传一个文件，filePath 是本地文件所在的路径，内部会自动对文件进行分片上传，上传的方式是使用异步的方式同时传多个分片的块。
 // mimeType 如果为空的话，会调用 net/http 里面的 DetectContentType 进行检测。
 // keyName 表示传到 ufile 的文件名。
