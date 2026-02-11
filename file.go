@@ -721,3 +721,20 @@ func (u *UFileRequest) GetObjectAcl(keyName string) (string, error) {
 	}
 	return aclPolicy.AccessControlList.Grant, nil
 }
+
+// AppendObject 追加写文件
+func (u *UFileRequest) AppendObject(keyName string, position int32, body io.Reader) (err error) {
+
+    query := &url.Values{}
+    query.Add("position", strconv.Itoa(int(position)))
+    reqURL := u.genFileURL(keyName) + "?append&" + query.Encode()
+
+    req, err := http.NewRequest("POST", reqURL, body)
+    if err != nil {
+        return err
+    }
+    keyName = keyName + "?append&position=" + strconv.Itoa(int(position))
+    authorization := u.Auth.Authorization("POST", u.BucketName, keyName, req.Header)
+    req.Header.Add("authorization", authorization)
+    return u.request(req)
+}
